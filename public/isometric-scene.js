@@ -28,7 +28,7 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
     this.lastTs = performance.now();
     this.society = null;
     this.playerAgentId = 'farmer-1';
-    this.pixelScale = 2;
+    this.pixelScale = 1; // Default to Full Native Retina 1x Ultra-Sharp rendering!
     this.weatherMode = 'sunny';
 
     // Real-time agent entities on the mainland
@@ -143,27 +143,28 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
 
   _loadSprites() {
     this.sprites = {};
+    const v = '?v=sharp2';
     const manifest = {
-      pixelFarmer: './assets/sprites/pixel-farmer.png',
-      pixelEngineer: './assets/sprites/pixel-engineer.png',
-      pixelManager: './assets/sprites/pixel-manager.png',
-      pixelArchon: './assets/sprites/pixel-archon.png',
-      pixelCastle: './assets/sprites/pixel-castle.png',
-      pixelWorkstation: './assets/sprites/pixel-workstation.png',
-      pixelBridge: './assets/sprites/pixel-bridge.png',
-      pixelMonolith: './assets/sprites/pixel-monolith.png',
-      pixelClubhouse: './assets/sprites/pixel-clubhouse.png',
-      pixelTree: './assets/sprites/pixel-tree.png',
+      pixelFarmer: './assets/sprites/pixel-farmer.png' + v,
+      pixelEngineer: './assets/sprites/pixel-engineer.png' + v,
+      pixelManager: './assets/sprites/pixel-manager.png' + v,
+      pixelArchon: './assets/sprites/pixel-archon.png' + v,
+      pixelCastle: './assets/sprites/pixel-castle.png' + v,
+      pixelWorkstation: './assets/sprites/pixel-workstation.png' + v,
+      pixelBridge: './assets/sprites/pixel-bridge.png' + v,
+      pixelMonolith: './assets/sprites/pixel-monolith.png' + v,
+      pixelClubhouse: './assets/sprites/pixel-clubhouse.png' + v,
+      pixelTree: './assets/sprites/pixel-tree.png' + v,
       // New Role Buildable Buildings & Work Tools
-      pixelHouse: './assets/sprites/pixel-house.png',
-      pixelFactory: './assets/sprites/pixel-factory.png',
-      pixelShop: './assets/sprites/pixel-shop.png',
-      pixelPaddlefield: './assets/sprites/pixel-paddlefield.png',
-      toolScythe: './assets/sprites/pixel-tool-scythe.png',
-      toolWrench: './assets/sprites/pixel-tool-wrench.png',
-      toolRacket: './assets/sprites/pixel-tool-racket.png',
-      toolHammer: './assets/sprites/pixel-tool-hammer.png',
-      ancestorSvg: './assets/sprites/char-ancestor.svg'
+      pixelHouse: './assets/sprites/pixel-house.png' + v,
+      pixelFactory: './assets/sprites/pixel-factory.png' + v,
+      pixelShop: './assets/sprites/pixel-shop.png' + v,
+      pixelPaddlefield: './assets/sprites/pixel-paddlefield.png' + v,
+      toolScythe: './assets/sprites/pixel-tool-scythe.png' + v,
+      toolWrench: './assets/sprites/pixel-tool-wrench.png' + v,
+      toolRacket: './assets/sprites/pixel-tool-racket.png' + v,
+      toolHammer: './assets/sprites/pixel-tool-hammer.png' + v,
+      ancestorSvg: './assets/sprites/char-ancestor.svg' + v
     };
     Object.entries(manifest).forEach(([k, src]) => {
       const img = new Image();
@@ -627,8 +628,9 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       targetCtx.scale(1 / pScale, 1 / pScale);
     } else {
       targetCtx.save();
-      targetCtx.scale(this.dpr, this.dpr);
-      targetCtx.imageSmoothingEnabled = false;
+      targetCtx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+      targetCtx.imageSmoothingEnabled = true;
+      targetCtx.imageSmoothingQuality = 'high';
     }
 
     this._renderWorld(targetCtx);
@@ -664,9 +666,10 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
     this._drawOceanBackdrop(ctx);
 
     ctx.save();
-    ctx.translate(this.width * 0.5 + this.camera.x, this.height * 0.5 + this.camera.y);
+    ctx.translate(Math.round(this.width * 0.5 + this.camera.x), Math.round(this.height * 0.5 + this.camera.y));
     ctx.scale(this.camera.zoom, this.camera.zoom);
-    ctx.imageSmoothingEnabled = false;
+    ctx.imageSmoothingEnabled = this.pixelScale === 1;
+    if (this.pixelScale === 1) ctx.imageSmoothingQuality = 'high';
 
     const nearestHotspot = this.getNearestHotspot();
 
@@ -956,10 +959,10 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       paddlefield: 'pixelPaddlefield'
     };
     const key = spriteMap[b.type];
-    const size = b.type === 'paddlefield' ? 108 : 88;
+    const size = b.type === 'paddlefield' ? 128 : 104;
 
     if (this._isReady(key)) {
-      ctx.drawImage(this.sprites[key], b.x - size / 2, b.y - size * 0.72, size, size);
+      ctx.drawImage(this.sprites[key], Math.round(b.x - size / 2), Math.round(b.y - size * 0.72), size, size);
     }
 
     // Animated details per building type:
@@ -1044,7 +1047,7 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       ctx.save();
       ctx.translate(ax, ay);
       if (ent.facing < 0) ctx.scale(-1, 1);
-      ctx.drawImage(this.sprites[spriteKey], -22, -40, 44, 44);
+      ctx.drawImage(this.sprites[spriteKey], -27, -50, 54, 54);
 
       // Draw Equipped Role Work Tool in character's hand with swing animation!
       const toolKey = ent.overrideTool
@@ -1060,9 +1063,9 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
           ? Math.sin(ent.actionAnim * 28) * 1.1
           : Math.sin(this.time * 3.5) * 0.12;
         ctx.save();
-        ctx.translate(12, -18);
+        ctx.translate(15, -22);
         ctx.rotate(swingAngle);
-        ctx.drawImage(this.sprites[toolKey], -12, -16, 26, 26);
+        ctx.drawImage(this.sprites[toolKey], -15, -20, 32, 32);
         ctx.restore();
       }
       ctx.restore();

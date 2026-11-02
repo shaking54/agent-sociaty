@@ -24,17 +24,17 @@
     farmer: {
       name: 'GOLDEN SCYTHE',
       short: 'SCYTHE+',
-      icon: './assets/sprites/pixel-tool-scythe.png'
+      icon: './assets/sprites/pixel-tool-scythe.png?v=sharp2'
     },
     engineer: {
       name: 'POWER WRENCH',
       short: 'WRENCH+',
-      icon: './assets/sprites/pixel-tool-wrench.png'
+      icon: './assets/sprites/pixel-tool-wrench.png?v=sharp2'
     },
     manager: {
       name: 'PRO PADDLE',
       short: 'PADDLE+',
-      icon: './assets/sprites/pixel-tool-racket.png'
+      icon: './assets/sprites/pixel-tool-racket.png?v=sharp2'
     }
   };
 
@@ -420,8 +420,8 @@
     const isArchon = myRank === 1;
 
     document.getElementById('hudAvatar').src = isArchon
-      ? './assets/sprites/pixel-archon.png'
-      : `./assets/sprites/pixel-${lin.role}.png`;
+      ? './assets/sprites/pixel-archon.png?v=sharp2'
+      : `./assets/sprites/pixel-${lin.role}.png?v=sharp2`;
     document.getElementById('hudCrown').classList.toggle('hidden', !isArchon);
     document.getElementById('hudAgentName').textContent = lin.id.toUpperCase();
     document.getElementById('hudGenBadge').textContent = `GEN ${lin.currentGen}`;
@@ -545,7 +545,7 @@
 
   document.getElementById('btnPixelMode').addEventListener('click', (e) => {
     const scale = scene.cyclePixelMode();
-    e.currentTarget.textContent = `🕹️ ${scale}×`;
+    e.currentTarget.textContent = scale === 1 ? '✨ HD 1×' : `🕹️ ${scale}×`;
   });
 
   document.getElementById('btnSpeed').addEventListener('click', () => {
