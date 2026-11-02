@@ -2,387 +2,106 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Agent Society: 2.5D Dynasty Simulator Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Agent Society — Pixel-Art 3D Floating Island Game</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <div class="app-shell">
-    <!-- TOP GAME COMMAND BAR -->
-    <header class="top-bar">
-      <div class="brand-cluster">
-        <div class="brand-emblem">AI</div>
-        <div>
-          <div class="brand-title-row">
-            <h1>AGENT SOCIETY: PIXEL-ART 3D SIMULATOR</h1>
-            <span id="eraHeaderBadge" class="ticket-pill">ERA I: FOUNDING</span>
-            <span class="ticket-pill subtle">🕹️ PIXEL-ART 3D ISLANDS</span>
+  <!-- 100% FULLSCREEN PIXEL-ART 3D GAME CANVAS -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- MINIMAL DIEGETIC PIXEL-ART HUD (TOP-LEFT: PLAYER & COLONY STATUS) -->
+  <div class="hud-top-left">
+    <div class="player-card" id="playerCardBtn" title="Press TAB to switch controlled agent">
+      <div class="avatar-frame">
+        <img id="hudAvatar" src="./assets/sprites/pixel-farmer.png" alt="Player" />
+        <span id="hudCrown" class="crown-badge hidden">👑</span>
+      </div>
+      <div class="player-stats">
+        <div class="player-name-row">
+          <span id="hudAgentName">FARMER-1</span>
+          <span id="hudGenBadge" class="pixel-tag purple">GEN 1</span>
+          <span id="hudRoleBadge" class="pixel-tag green">FARMER</span>
+        </div>
+        <!-- Stamina Bar -->
+        <div class="pixel-bar-row">
+          <span class="bar-icon">🌾</span>
+          <div class="pixel-bar-track">
+            <div id="hudStaminaFill" class="pixel-bar-fill stamina" style="width: 85%"></div>
           </div>
-          <p class="brand-subtitle">
-            Autonomous Role Lineages • Stamina &amp; Rations • 10k-Token Heir Handovers • Archon Charter Laws
-          </p>
+          <span id="hudStaminaText" class="bar-val">85%</span>
+        </div>
+        <!-- 10k Context Lifespan Bar -->
+        <div class="pixel-bar-row">
+          <span class="bar-icon">🧬</span>
+          <div class="pixel-bar-track">
+            <div id="hudContextFill" class="pixel-bar-fill context" style="width: 32%"></div>
+          </div>
+          <span id="hudContextText" class="bar-val">3.2k/10k</span>
         </div>
       </div>
-
-      <div class="society-controls">
-        <div class="control-group">
-          <label for="societySelect" class="control-label">CAMPAIGN / SCENARIO</label>
-          <select id="societySelect" class="cyber-select"></select>
-        </div>
-
-        <div class="speed-cluster" role="group" aria-label="Simulation Speed">
-          <button id="btnPauseSim" class="speed-btn active" data-speed="0" title="Pause Simulation">⏸ Pause</button>
-          <button id="btnSpeed1" class="speed-btn" data-speed="1" title="Normal Speed (1x)">▶ 1×</button>
-          <button id="btnSpeed2" class="speed-btn" data-speed="2" title="Fast Speed (2x)">⏩ 2×</button>
-          <button id="btnSpeed4" class="speed-btn" data-speed="4" title="Ultra Speed (4x)">⏩⏩ 4×</button>
-          <button id="btnStepTurn" class="cyber-btn accent-emerald" title="Advance 1 Turn">⏭ Step Turn</button>
-        </div>
-
-        <div class="button-cluster">
-          <button id="btnNewSociety" class="cyber-btn accent-purple" title="Start a new custom Colony">
-            ＋ New Colony
-          </button>
-          <button id="btnBriefModal" class="cyber-btn accent-amber" title="Open Game Rules & Mechanics Guide">
-            📖 Game Rules
-          </button>
-        </div>
-      </div>
-    </header>
-
-    <!-- GAME RESOURCE & PROSPERITY RIBBON -->
-    <section class="telemetry-ribbon" aria-label="Game Resources & Scores">
-      <div class="kpi-card">
-        <span class="kpi-label">🏆 PROSPERITY SCORE</span>
-        <strong id="kpiProsperity" class="kpi-value amber">185 PTS</strong>
-        <span id="kpiEraSub" class="kpi-sub">Next Era at 250 PTS</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-label">⏳ TURN &amp; SEASON</span>
-        <strong id="kpiTurns" class="kpi-value cyan">Turn 14</strong>
-        <span id="kpiStateBadge" class="kpi-sub">PAUSED • READY</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-label">💰 SHARED TREASURY</span>
-        <strong id="kpiTreasury" class="kpi-value amber">34 GCOIN</strong>
-        <span class="kpi-sub">+1G / MCP Message Tax</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-label">🌾 MARKET RATIONS</span>
-        <strong id="kpiRations" class="kpi-value emerald">24 Rations</strong>
-        <span id="kpiFedStatus" class="kpi-sub">All 10 Lineages Fed</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-label">💖 SOCIETY HARMONY</span>
-        <strong id="kpiHarmony" class="kpi-value pink">88%</strong>
-        <span class="kpi-sub">Boosts Yield &amp; Stability</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-label">🧬 DYNASTY HEIRS</span>
-        <strong id="kpiRetired" class="kpi-value purple">4 Gens</strong>
-        <span id="kpiGenCap" class="kpi-sub">+10% Wage Mastery / Gen</span>
-      </div>
-      <div class="kpi-card">
-        <span class="kpi-label">👑 REIGNING ARCHON</span>
-        <strong id="kpiTopPower" class="kpi-value pink">engineer-8 (43)</strong>
-        <span class="kpi-sub">#1 Power = Wallet + 2×Sales</span>
-      </div>
-      <div class="kpi-card truth-card" id="truthBannerCard" title="Click to open Charter Laws & Rules">
-        <span class="kpi-label">📜 ACTIVE CHARTER LAWS</span>
-        <strong id="kpiActiveLaws" class="kpi-value truth-badge">3 / 6 LAWS</strong>
-        <span id="kpiWageSummary" class="kpi-sub">Wages: F:5G • E:10G • M:15G</span>
-      </div>
-    </section>
-
-    <!-- MAIN 3-COLUMN GAME WORKSPACE -->
-    <main class="workspace-grid">
-      <!-- LEFT PANEL: QUESTS, LINEAGE ROSTER & ISLAND LEVELS -->
-      <aside class="side-panel left-panel">
-        <!-- Active Quests Tracker -->
-        <div class="quests-box">
-          <div class="quests-header">
-            <span>🎯 DYNASTY QUESTS &amp; GOALS</span>
-            <span id="questsDoneBadge" class="mini-badge">0 / 4</span>
-          </div>
-          <div id="questsListContainer" class="quests-list"></div>
-        </div>
-
-        <div class="panel-header">
-          <div>
-            <h2>LINEAGES &amp; POWER RANK</h2>
-            <p class="panel-subtitle">Click an agent to command or inspect</p>
-          </div>
-          <select id="rosterSortSelect" class="mini-select" title="Sort lineages">
-            <option value="power">Sort: Power 👑</option>
-            <option value="stamina">Sort: Stamina 🌾</option>
-            <option value="wallet">Sort: Wallet 💰</option>
-            <option value="id">Sort: ID</option>
-          </select>
-        </div>
-
-        <div class="role-filter-bar" role="tablist">
-          <button class="filter-chip active" data-role="all">All</button>
-          <button class="filter-chip" data-role="farmer">🌾 Farmer</button>
-          <button class="filter-chip" data-role="engineer">⚙️ Eng</button>
-          <button class="filter-chip" data-role="manager">🏛️ Mgr</button>
-        </div>
-
-        <div id="lineageRosterList" class="roster-list"></div>
-
-        <div class="district-legend">
-          <div class="legend-title">2.5D ISLAND DISTRICTS (CLICK TO UPGRADE)</div>
-          <div id="islandQuickButtons" class="island-chip-grid"></div>
-        </div>
-      </aside>
-
-      <!-- CENTER STAGE: 2.5D ISOMETRIC VOXEL GAME WORLD -->
-      <section class="center-stage">
-        <!-- Top Floating Game Banner on Canvas -->
-        <div class="canvas-hud-top">
-          <div class="hud-pill scheduler-pill">
-            <span class="pulse-dot"></span>
-            <span>ACTIVE TURN:</span>
-            <strong id="hudActiveAgent">farmer-1 (Gen 1)</strong>
-          </div>
-          <div class="hud-pill wage-pill">
-            <span>ACTIVE WAGES:</span>
-            <strong id="hudWageRule">Farmer 5G • Engineer 10G • Manager 15G</strong>
-          </div>
-          <div class="hud-pill runtime-pill">
-            <span>GAME LOOP:</span>
-            <strong>Work → Trade Rations/Tech → 10k Handover → Laws</strong>
-          </div>
-        </div>
-
-        <!-- Event Toast Banner (when World Event or Quest triggers) -->
-        <div id="gameToastBanner" class="game-toast hidden"></div>
-
-        <!-- Interactive 2.5D HTML5 Canvas -->
-        <div class="canvas-container">
-          <canvas id="isoCanvas"></canvas>
-        </div>
-
-        <!-- Bottom Floating Replay & Camera Bar -->
-        <div class="canvas-hud-bottom">
-          <div class="replay-scrubber-box">
-            <div class="scrubber-top-row">
-              <span class="scrubber-title">⚡ LIVE TURN CHRONICLE &amp; CONDUIT REPLAY</span>
-              <span id="scrubberEventLabel" class="scrubber-event-meta">Turn 14</span>
-            </div>
-            <div class="scrubber-controls-row">
-              <button id="btnPrevEvent" class="icon-btn" title="Previous recorded action">⏮</button>
-              <button id="btnPlayStream" class="icon-btn play-btn" title="Replay historical actions on 2.5D map">▶ Replay History</button>
-              <button id="btnNextEvent" class="icon-btn" title="Next recorded action">⏭</button>
-              <input id="eventScrubberInput" type="range" min="0" max="10" value="10" class="cyber-range" />
-            </div>
-          </div>
-
-          <div class="camera-controls-box">
-            <button id="btnCyclePixel" class="icon-btn active" title="Cycle Pixel-Art 3D Shader Resolution (2x / 3x / 1x)">🕹️ Pixel 2×</button>
-            <button id="btnCycleWeather" class="icon-btn active" title="Cycle Floating Island Weather (Sunny / Sunset / Rain / Night)">☀️ Sunny</button>
-            <button id="btnToggleBoard" class="icon-btn" title="Switch between Floating Sky Islands and Diorama Map Board">🏝️ Sky Islands</button>
-            <button id="btnZoomIn" class="icon-btn" title="Zoom In">＋</button>
-            <button id="btnZoomOut" class="icon-btn" title="Zoom Out">－</button>
-            <button id="btnResetCam" class="icon-btn" title="Reset 2.5D Camera">⟲ Fit</button>
-            <button id="btnToggleBars" class="icon-btn active" title="Toggle Stamina & Context Bars on Voxel Agents">📊 Bars</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- RIGHT PANEL: GAME COMMANDS, CHARTER LAWS, MARKET & WORLD EVENTS -->
-      <aside class="side-panel right-panel">
-        <nav class="inspector-tabs" role="tablist">
-          <button class="tab-btn active" data-tab="agent">🎮 Agent</button>
-          <button class="tab-btn" data-tab="charter">📜 Laws</button>
-          <button class="tab-btn" data-tab="market">⚖️ Market &amp; Tech</button>
-          <button class="tab-btn" data-tab="journal">⚡ Events</button>
-        </nav>
-
-        <!-- TAB 1: AGENT COMMAND & DYNASTY DOSSIER -->
-        <div id="tab-agent" class="tab-pane active">
-          <div id="agentInspectorContent"></div>
-        </div>
-
-        <!-- TAB 2: PLAYABLE CHARTER LAWS & ARCHON GOVERNANCE -->
-        <div id="tab-charter" class="tab-pane">
-          <div class="governance-banner">
-            <div class="gov-leader-row">
-              <span>👑 REIGNING ARCHON (#1 POWER):</span>
-              <strong id="govLeaderBadge" class="pink-text">engineer-8 (Power: 43)</strong>
-            </div>
-            <p class="muted-note">
-              <strong>Game Rule:</strong> Power = <code>Wallet + (Sales × 2) + Gen Bonus</code>. Toggle Charter Laws below to dynamically modify wages, ration price caps, trade rebates, and welfare reserves!
-            </p>
-          </div>
-
-          <div class="section-subheader">
-            <span>ACTIVE CHARTER LAW CARDS (CLICK TO ENACT / REPEAL)</span>
-          </div>
-          <div id="charterLawsGrid" class="laws-list"></div>
-
-          <div class="section-subheader">
-            <span>CHARTER MARKDOWN &amp; REVISION LOG</span>
-            <button id="btnHumanEditCharter" class="mini-btn cyan">✏️ Edit Charter Text</button>
-          </div>
-          <pre id="charterMarkdownView" class="charter-markdown-box"></pre>
-          <div id="charterRevisionsList" class="revision-list"></div>
-        </div>
-
-        <!-- TAB 3: MARKET ORDERBOOK & ISLAND DISTRICT UPGRADES -->
-        <div id="tab-market" class="tab-pane">
-          <div class="section-subheader">
-            <span>🏗️ UPGRADE 2.5D ISLAND DISTRICTS (TREASURY GCOIN)</span>
-          </div>
-          <div id="districtUpgradesList" class="market-list"></div>
-
-          <div class="section-subheader">
-            <span>🛒 LIVE MARKETPLACE ORDERBOOK (CLICK TO BUY)</span>
-            <span id="marketTotalUnitsBadge" class="mini-badge">24 Units</span>
-          </div>
-          <div id="marketListingsContainer" class="market-list"></div>
-        </div>
-
-        <!-- TAB 4: WORLD EVENTS DECK & CHRONICLE JOURNAL -->
-        <div id="tab-journal" class="tab-pane">
-          <div class="section-subheader">
-            <span>🌩️ ARCHITECT GOD-MODE: TRIGGER WORLD EVENT</span>
-          </div>
-          <div id="worldEventsDeck" class="events-deck-grid"></div>
-
-          <div class="section-subheader">
-            <span>📜 SOCIETY ACTION &amp; MCP CHRONICLE</span>
-          </div>
-          <div class="pane-toolbar">
-            <input id="journalSearchInput" type="search" placeholder="Filter actions, lineages, items..." class="cyber-input" />
-            <select id="journalCategorySelect" class="mini-select">
-              <option value="all">All Events</option>
-              <option value="ledger">Work &amp; Trades</option>
-              <option value="handover">Dynasty Handovers</option>
-            </select>
-          </div>
-          <div id="journalFeedList" class="journal-list"></div>
-        </div>
-      </aside>
-    </main>
-  </div>
-
-  <!-- MODAL 1: CREATE NEW COLONY -->
-  <div id="createSocietyModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3>＋ Start New Agent Society Colony</h3>
-        <button class="modal-close" data-close="createSocietyModal">✕</button>
-      </div>
-      <form id="createSocietyForm" class="modal-body">
-        <p class="modal-lead">
-          Configure your new 2.5D Colony's starting population, generation dynasty cap, context lifespan, and initial wage law.
-        </p>
-        <div class="form-row">
-          <label for="newSocName">Colony Name</label>
-          <input id="newSocName" type="text" class="cyber-input" value="Solaris Voxel Republic" required />
-        </div>
-        <div class="form-grid-2">
-          <div class="form-row">
-            <label for="newSocPop">Lineage Population (10–20)</label>
-            <input id="newSocPop" type="number" class="cyber-input" min="10" max="20" value="12" required />
-          </div>
-          <div class="form-row">
-            <label for="newSocGenCap">Dynasty Generation Cap (10–20)</label>
-            <input id="newSocGenCap" type="number" class="cyber-input" min="10" max="20" value="15" required />
-          </div>
-        </div>
-        <div class="form-grid-2">
-          <div class="form-row">
-            <label for="newSocThreshold">Handover Lifespan (Context Tokens)</label>
-            <input id="newSocThreshold" type="number" class="cyber-input" min="2000" max="32000" step="1000" value="10000" required />
-          </div>
-          <div class="form-row">
-            <label for="newSocWageMode">Starting Wage Law</label>
-            <select id="newSocWageMode" class="cyber-select">
-              <option value="sha86">Standard (Farmer 5G / Eng 10G / Mgr 15G)</option>
-              <option value="sha85">Technocrat Reform (Eng 14G / Farmer 12G / Mgr 10G)</option>
-              <option value="flat10">Egalitarian Flat Wage (All Roles 10G)</option>
-            </select>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="cyber-btn subtle" data-close="createSocietyModal">Cancel</button>
-          <button type="submit" class="cyber-btn accent-cyan">Launch Colony</button>
-        </div>
-      </form>
     </div>
-  </div>
 
-  <!-- MODAL 2: GAME RULES & MECHANICS GUIDE -->
-  <div id="briefModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
-    <div class="modal-card wide-modal">
-      <div class="modal-header">
-        <h3>📖 Agent Society: 2.5D Dynasty Simulator — Official Game Rules</h3>
-        <button class="modal-close" data-close="briefModal">✕</button>
+    <!-- Compact Resource Pills -->
+    <div class="resource-strip">
+      <div class="res-pill gold" title="Your Wallet GCOIN">
+        <span>💰</span> <strong id="hudWallet">28G</strong>
       </div>
-      <div class="modal-body brief-modal-body">
-        <div class="brief-columns">
-          <div class="brief-col">
-            <h4>1. Core Survival, Work &amp; Dynasty Rules</h4>
-            <ul class="brief-list">
-              <li><strong>🌾 Stamina &amp; Rations:</strong> Each turn costs an agent <code>-7% Stamina</code>. When Stamina drops below 60%, agents walk to the <strong>GCOIN Market</strong> to buy a <strong>Staple Food Ration (1 GCOIN)</strong> for <code>+40% Stamina</code>. Starving agents (<25% Stamina) suffer half work output unless rescued by the <em>Commons Emergency Reserve</em> law!</li>
-              <li><strong>⚒️ Role Production Loop:</strong>
-                <br>• <strong>Farmers (Farmstead):</strong> Harvest Staple Food Rations + earn Farmer Wage.
-                <br>• <strong>Engineers (Workshop):</strong> Craft Storage FIFO &amp; Irrigation Blueprints that boost Farm yield and upgrade Districts.
-                <br>• <strong>Managers (Town Hall):</strong> Coordinate pilots, boost <strong>Society Harmony</strong>, and mediate disputes.
-              </li>
-              <li><strong>🧬 10,000-Token Generational Handover:</strong> Every action consumes Context Tokens. At <code>10,000 tokens</code>, the agent walks to the <strong>Lineage Archive</strong>, retires, and spawns a <strong>Gen +1 Heir</strong> who inherits 100% of Wallet, Inventory, and <code>+10% Dynasty Wage Mastery</code>!</li>
-            </ul>
-          </div>
-          <div class="brief-col">
-            <h4>2. Power, Charter Laws &amp; Architect Controls</h4>
-            <ul class="brief-list">
-              <li><strong>👑 Archon Power Formula:</strong> <code>Power = Wallet GCOIN + (Completed Sales × 2) + Gen Bonus</code>. The #1 Power living agent wears the <strong>Archon Crown</strong> and can enact or replace <strong>Charter Laws</strong>.</li>
-              <li><strong>💰 Shared Treasury &amp; Taxes:</strong> Every inter-agent MCP message costs <code>1 GCOIN</code> paid into the central <strong>Shared Treasury</strong>. You can spend Treasury GCOIN to <strong>Upgrade 2.5D Island Districts (Lv.1 → Lv.5)</strong> or send <strong>Stimulus Grants</strong> to lineages!</li>
-              <li><strong>🎯 Quests &amp; Eras:</strong> Complete the 4 Dynasty Quests and grow <strong>Prosperity Score</strong> to advance from <em>Era I: Founding Settlement</em> to <em>Era IV: Golden Age Republic</em>.</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="ref-style-comparison">
-          <div>
-            <h4>3. Pixel-Art 3D Floating-Island World &amp; Custom Sprites</h4>
-            <p class="muted-note">
-              Inspired by Tripo3D's <em>Pixel-Art Tennis Club 3D Game</em> and Gamoji's <em>6-Role Isometric Observatory</em>: watch palette-quantized pixel-art agents walk across floating sky islands with cascading pixel waterfalls, red-roofed clubhouses, and dynamic weather.
-            </p>
-            <div class="sprite-showcase-strip">
-              <img src="./assets/sprites/pixel-farmer.png" alt="Pixel Farmer" class="pixel-sprite-icon" title="Farmer Sprite" />
-              <img src="./assets/sprites/pixel-engineer.png" alt="Pixel Engineer" class="pixel-sprite-icon" title="Engineer Sprite" />
-              <img src="./assets/sprites/pixel-manager.png" alt="Pixel Manager" class="pixel-sprite-icon" title="Manager Sprite" />
-              <img src="./assets/sprites/pixel-archon.png" alt="Pixel Archon" class="pixel-sprite-icon" title="Crowned Archon Sprite" />
-              <img src="./assets/sprites/pixel-clubhouse.png" alt="Pixel Clubhouse" class="pixel-sprite-icon" title="Pixel-Art 3D Clubhouse" />
-              <img src="./assets/sprites/pixel-castle.png" alt="Pixel Granary" class="pixel-sprite-icon" title="Pixel Granary Keep" />
-              <img src="./assets/sprites/pixel-bridge.png" alt="Pixel Market Bridge" class="pixel-sprite-icon" title="Pixel Market Bridge" />
-              <img src="./assets/sprites/pixel-monolith.png" alt="Pixel Charter Monolith" class="pixel-sprite-icon" title="Pixel Charter Monolith" />
-            </div>
-          </div>
-          <img src="./assets/iso-world-map.jpg" alt="Generated 2.5D Pixel-Art Isometric World" class="ref-style-thumb" />
-        </div>
+      <div class="res-pill cyan" title="Power Score = Wallet + 2×Sales + Gen (#1 becomes Archon)">
+        <span>⚡</span> <strong id="hudPower">P:34 (#2)</strong>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="cyber-btn accent-cyan" data-close="briefModal">Resume Game</button>
+      <div class="res-pill amber" title="Shared Colony Treasury">
+        <span>🏦</span> <strong id="hudTreasury">115G</strong>
+      </div>
+      <div class="res-pill emerald" title="Market Food Rations in Stock">
+        <span>🍞</span> <strong id="hudRations">24</strong>
+      </div>
+      <div class="res-pill pink" title="Active Archon Law">
+        <span>📜</span> <strong id="hudLawName">Ration Cap 1G</strong>
       </div>
     </div>
   </div>
 
-  <!-- MODAL 3: CHARTER MARKDOWN EDITOR -->
-  <div id="charterEditModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3>✏️ Edit Society Charter Text</h3>
-        <button class="modal-close" data-close="charterEditModal">✕</button>
-      </div>
-      <form id="charterEditForm" class="modal-body">
-        <textarea id="charterEditTextarea" rows="12" class="cyber-textarea"></textarea>
-        <div class="modal-footer">
-          <button type="button" class="cyber-btn subtle" data-close="charterEditModal">Cancel</button>
-          <button type="submit" class="cyber-btn accent-cyan">Save Charter</button>
+  <!-- TOP-RIGHT: COMPACT WORLD & WEATHER WIDGET -->
+  <div class="hud-top-right">
+    <div class="world-clock-pill">
+      <span id="hudTurnText">DAY 14</span>
+      <span class="dot-sep">•</span>
+      <span id="hudArchonText">👑 ARCHON: ENGINEER-8</span>
+    </div>
+    <div class="mini-icon-row">
+      <button id="btnWeather" class="pixel-icon-btn" title="Change Weather (W)">☀️</button>
+      <button id="btnPixelMode" class="pixel-icon-btn" title="Pixel Shader Scale (P)">🕹️ 2×</button>
+      <button id="btnSpeed" class="pixel-icon-btn" title="Game Speed">▶ 1×</button>
+    </div>
+  </div>
+
+  <!-- CENTER INTERACTION PROMPT (APPEARS WHEN NEAR AN ISLAND OBJECT) -->
+  <div id="worldPromptBubble" class="world-prompt hidden">
+    <span class="key-cap">SPACE</span>
+    <span id="worldPromptText">Harvest Golden Wheat (+5G, +4 Rations)</span>
+  </div>
+
+  <!-- BOTTOM RPG DIALOGUE / EVENT TICKER & HOTBAR -->
+  <div class="hud-bottom">
+    <div id="rpgDialogueBox" class="rpg-dialogue">
+      <img id="dialogueSpeakerImg" src="./assets/sprites/pixel-archon.png" alt="Speaker" class="dialogue-portrait" />
+      <div class="dialogue-content">
+        <div class="dialogue-speaker-row">
+          <strong id="dialogueSpeakerName">ARCHON ENGINEER-8 (GEN 2)</strong>
+          <span id="dialogueTag" class="pixel-tag gold">COLONY CHRONICLE</span>
         </div>
-      </form>
+        <p id="dialogueText">Welcome to the Floating Sky Colony! Use [WASD / Arrows] or Click anywhere to walk across the islands, or press [SPACE] to interact.</p>
+      </div>
+    </div>
+
+    <div class="controls-hint-bar">
+      <span><kbd>WASD</kbd> / <kbd>Click</kbd> Walk</span>
+      <span><kbd>SPACE</kbd> Action / Interact</span>
+      <span><kbd>E</kbd> Eat Ration (1G)</span>
+      <span><kbd>TAB</kbd> Switch Agent (1–10)</span>
+      <span><kbd>W</kbd> Weather</span>
+      <span><kbd>Scroll</kbd> Zoom</span>
     </div>
   </div>
 
