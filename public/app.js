@@ -1,13 +1,49 @@
-// AGENT SOCIETY — REAL-TIME PIXEL-ART 3D FLOATING-ISLAND GAME CONTROLLER
-// Play directly in the world with WASD / Arrows / Click-to-Move + SPACE to Interact!
+// AGENT SOCIETY — MAINLAND BUILDER, TOOLS & DYNASTY GAME CONTROLLER
+// Play with WASD / Arrows / Click-to-Move, SPACE to work with your equipped Tool,
+// and [1-4] to build House / Factory / Shop / Paddlefield or [5] to Upgrade your Tool!
 
 (function () {
   const DATA = window.AGENT_SOCIETY_DATA;
   const soc = DATA.SOCIETIES['active-dynasty-sim'];
 
+  // Initialize toolLevel and buildingsOwned on each lineage
+  soc.lineages.forEach((l) => {
+    if (!l.toolLevel) l.toolLevel = 1;
+    if (!l.buildingsOwned) l.buildingsOwned = 0;
+  });
+  soc.lineages[0].buildingsOwned = 1; // farmer-1 owns initial House
+  soc.lineages[5].buildingsOwned = 1; // engineer-8 owns initial Factory
+  soc.lineages[1].buildingsOwned = 1; // farmer-4 owns initial Shop
+  soc.lineages[6].buildingsOwned = 1; // manager-3 owns initial Paddlefield
+
   let playerAgentId = 'farmer-1';
-  let gameSpeed = 1; // 1x running by default so the world is alive immediately!
+  let gameSpeed = 1;
   let keysPressed = {};
+
+  const TOOL_META = {
+    farmer: {
+      name: 'GOLDEN SCYTHE',
+      short: 'SCYTHE+',
+      icon: './assets/sprites/pixel-tool-scythe.png'
+    },
+    engineer: {
+      name: 'POWER WRENCH',
+      short: 'WRENCH+',
+      icon: './assets/sprites/pixel-tool-wrench.png'
+    },
+    manager: {
+      name: 'PRO PADDLE',
+      short: 'PADDLE+',
+      icon: './assets/sprites/pixel-tool-racket.png'
+    }
+  };
+
+  const BUILDING_COSTS = {
+    house: 15,
+    factory: 25,
+    shop: 20,
+    paddlefield: 30
+  };
 
   const canvas = document.getElementById('gameCanvas');
   const scene = new window.IsometricSocietyScene(canvas, {
@@ -21,7 +57,12 @@
   scene.setPlayerAgent(playerAgentId);
 
   function computePower(lin) {
-    return lin.wallet + lin.completedSales * 2 + (lin.currentGen - 1) * 2;
+    return lin.wallet + lin.completedSales * 2 + (lin.currentGen - 1) * 2 + (lin.buildingsOwned || 0) * 5;
+  }
+
+  function getToolMultiplier(lin) {
+    const lv = lin.toolLevel || 1;
+    return 1 + lv * 0.5; // Lv.1 = 1.5x, Lv.2 = 2.0x, Lv.3 = 2.5x, Lv.4 = 3.0x, Lv.5 = 3.5x
   }
 
   function getSortedByPower() {
@@ -56,11 +97,12 @@
     const lin = getPlayerLineage();
     const ranked = getSortedByPower();
     const isArchon = ranked[0] && ranked[0].id === lin.id;
-    scene.spawnSpeech(lin.id, `Ready! (${lin.role.toUpperCase()})`, 2.2);
+    const tMeta = TOOL_META[lin.role] || TOOL_META.farmer;
+    scene.spawnSpeech(lin.id, `Equipped ${tMeta.name} Lv.${lin.toolLevel}!`, 2.2);
     setDialogue(
       lin,
       'SWITCHED AGENT',
-      `Now controlling ${lin.id} (Gen ${lin.currentGen} ${lin.role}). Goal: ${lin.goal}`,
+      `Now playing as ${lin.id} (Gen ${lin.currentGen} ${lin.role}) holding ${tMeta.name} Lv.${lin.toolLevel} (${getToolMultiplier(lin).toFixed(1)}× work output).`,
       isArchon
     );
     updateHUD();
@@ -72,7 +114,77 @@
     switchPlayerAgent(next.id);
   }
 
-  // Contextual Action when player presses SPACE or clicks the floating prompt bubble
+  // Construct a House, Factory, Shop, or Paddlefield on the Mainland
+  function playerBuildStructure(type) {
+    const lin = getPlayerLineage();
+    const ent = scene.getPlayerEntity();
+    if (!ent) return;
+
+    const cost = BUILDING_COSTS[type] || 20;
+    if (lin.wallet < cost) {
+      scene.spawnFloatingPopup(ent.x, ent.y, `NEED ${cost}G TO BUILD ${type.toUpperCase()}!`, '#f87171');
+      setDialogue(lin, 'NOT ENOUGH GCOIN', `${lin.id} has ${lin.wallet}G but needs ${cost}G to build a ${type.toUpperCase()}. Press [SPACE] to work & earn GCOIN first!`);
+      return;
+    }
+
+    lin.wallet -= cost;
+    lin.buildingsOwned = (lin.buildingsOwned || 0) + 1;
+    lin.contextTokens += 900;
+
+    const bldg = scene.buildStructureOnLand(type, lin.id);
+    const effects = {
+      house: 'Restores Stamina & grants +10% Heir Mastery',
+      factory: 'Passively mints GCOIN & crafts Engineer Blueprints',
+      shop: 'Stocks Rations & earns +2 Sales Power per trade',
+      paddlefield: 'Hosts Padel/Tennis Rallies for +Harmony & +Wage GCOIN'
+    };
+
+    scene.spawnSpeech(lin.id, `Built ${bldg.name}!`, 2.4);
+    setDialogue(
+      lin,
+      `BUILT ${type.toUpperCase()}`,
+      `🏗️ ${lin.id} constructed a ${bldg.name} on the mainland for ${cost}G! (${effects[type]}). Power increased by +5!`
+    );
+    updateHUD();
+  }
+
+  // Upgrade the player's equipped Role Work Tool (Scythe / Wrench / Paddle)
+  function playerUpgradeTool() {
+    const lin = getPlayerLineage();
+    const ent = scene.getPlayerEntity();
+    if (!ent) return;
+
+    const currentLv = lin.toolLevel || 1;
+    if (currentLv >= 5) {
+      scene.spawnFloatingPopup(ent.x, ent.y, 'MAX TOOL LV.5 REACHED! ★', '#fde047');
+      return;
+    }
+
+    const cost = 15;
+    if (lin.wallet < cost) {
+      scene.spawnFloatingPopup(ent.x, ent.y, `NEED ${cost}G TO UPGRADE TOOL!`, '#f87171');
+      setDialogue(lin, 'TOOL FORGE', `Need ${cost} GCOIN to upgrade your ${TOOL_META[lin.role].name} to Lv.${currentLv + 1}. Press [SPACE] to work first!`);
+      return;
+    }
+
+    lin.wallet -= cost;
+    lin.toolLevel = currentLv + 1;
+    const mult = getToolMultiplier(lin).toFixed(1);
+    const tMeta = TOOL_META[lin.role];
+
+    scene.triggerPlayerActionAnim();
+    scene.spawnAscensionBeam(ent.x, ent.y, '#38bdf8');
+    scene.spawnFloatingPopup(ent.x, ent.y, `🛠️ ${tMeta.name} LV.${lin.toolLevel} (${mult}×)!`, '#38bdf8');
+    scene.spawnSpeech(lin.id, `${tMeta.name} Lv.${lin.toolLevel}!`, 2.5);
+    setDialogue(
+      lin,
+      'TOOL ENHANCED',
+      `🛠️ Upgraded ${lin.id}'s ${tMeta.name} to Level ${lin.toolLevel}! All work, harvest, factory & Paddlefield output is now ${mult}×!`
+    );
+    updateHUD();
+  }
+
+  // Contextual Action when pressing SPACE
   function performContextualAction() {
     const lin = getPlayerLineage();
     const ent = scene.getPlayerEntity();
@@ -88,13 +200,17 @@
           ? 'craft'
           : 'rally';
 
+    const toolMult = getToolMultiplier(lin);
+
     if (actionType === 'harvest') {
-      const wage = soc.wages.farmer + (lin.currentGen - 1);
-      const rations = 5;
+      const baseWage = soc.wages.farmer + (lin.currentGen - 1);
+      const wage = Math.round(baseWage * toolMult);
+      const rations = Math.round(4 * toolMult);
       lin.wallet += wage;
       lin.workCount += 1;
       lin.stamina = Math.max(10, (lin.stamina ?? 85) - 5);
-      lin.contextTokens += 1200;
+      lin.contextTokens += 1150;
+
       const foodGood = lin.listedGoods.find((g) => g.type === 'food');
       if (foodGood) foodGood.remainingQty += rations;
       else {
@@ -108,31 +224,39 @@
         });
       }
       scene.spawnBurst(ent.x, ent.y, '#fde047', 12);
-      scene.spawnFloatingPopup(ent.x, ent.y, `🌾 +${wage}G & +${rations} RATIONS!`, '#4ade80');
-      scene.spawnSpeech(lin.id, `Harvested +${rations} Rations!`, 2.2);
-      setDialogue(lin, 'FARMSTEAD HARVEST', `${lin.id} harvested golden wheat! Earned +${wage} GCOIN and stocked +${rations} Rations in the Market.`);
+      scene.spawnFloatingPopup(ent.x, ent.y, `🌾 +${wage}G & +${rations} RATIONS (${toolMult.toFixed(1)}×)!`, '#4ade80');
+      scene.spawnSpeech(lin.id, `Scythe Lv.${lin.toolLevel}: +${wage}G!`, 2.0);
+      setDialogue(lin, 'FARMLAND HARVEST', `${lin.id} swung Golden Scythe Lv.${lin.toolLevel} (${toolMult.toFixed(1)}×)! Earned +${wage} GCOIN and harvested +${rations} Rations.`);
     } else if (actionType === 'craft') {
-      const wage = soc.wages.engineer + (lin.currentGen - 1);
+      const baseWage = soc.wages.engineer + (lin.currentGen - 1);
+      const wage = Math.round(baseWage * toolMult);
       lin.wallet += wage;
       lin.workCount += 1;
       lin.completedSales += 1;
       lin.stamina = Math.max(10, (lin.stamina ?? 85) - 5);
-      lin.contextTokens += 1300;
+      lin.contextTokens += 1200;
       scene.spawnBurst(ent.x, ent.y, '#38bdf8', 12);
-      scene.spawnFloatingPopup(ent.x, ent.y, `⚙️ +${wage}G & BLUEPRINT!`, '#38bdf8');
-      scene.spawnSpeech(lin.id, 'Compiled Blueprint v2!', 2.2);
-      setDialogue(lin, 'WORKSHOP CRAFT', `${lin.id} compiled a Storage & Irrigation Blueprint! Earned +${wage} GCOIN and +2 Power.`);
+      scene.spawnFloatingPopup(ent.x, ent.y, `⚙️ +${wage}G & BLUEPRINT (${toolMult.toFixed(1)}×)!`, '#38bdf8');
+      scene.spawnSpeech(lin.id, `Wrench Lv.${lin.toolLevel}: +${wage}G!`, 2.0);
+      setDialogue(lin, 'FACTORY & TECH RIG', `${lin.id} used Power Wrench Lv.${lin.toolLevel} (${toolMult.toFixed(1)}×) to manufacture Tech Blueprints! Earned +${wage} GCOIN and +2 Power.`);
     } else if (actionType === 'rally') {
-      const wage = soc.wages.manager + (lin.currentGen - 1);
+      const baseWage = soc.wages.manager + (lin.currentGen - 1);
+      const wage = Math.round(baseWage * toolMult);
       lin.wallet += wage;
       soc.harmony = Math.min(100, (soc.harmony || 88) + 4);
+      lin.stamina = Math.min(100, (lin.stamina ?? 80) + 12);
       lin.contextTokens += 1100;
-      scene.courtBall.vz = 115;
-      scene.courtBall.vx = -scene.courtBall.vx * 1.15;
       scene.spawnBurst(ent.x, ent.y, '#bef264', 14);
-      scene.spawnFloatingPopup(ent.x, ent.y, `🎾 SMASH! +${wage}G & +4% HARMONY`, '#bef264');
-      scene.spawnSpeech(lin.id, 'Love All! +Harmony!', 2.2);
-      setDialogue(lin, 'CLUBHOUSE COURT RALLY', `${lin.id} smashed a winning rally on the Pixel Tennis Court! Colony Harmony rose to ${soc.harmony}% (+${wage}G).`);
+      scene.spawnFloatingPopup(ent.x, ent.y, `🎾 PADDLE SMASH! +${wage}G & +HARMONY`, '#bef264');
+      scene.spawnSpeech(lin.id, `Paddle Lv.${lin.toolLevel} Smash!`, 2.0);
+      setDialogue(lin, 'PADDLEFIELD RALLY', `${lin.id} rallied on the Paddlefield with Pro Paddle Lv.${lin.toolLevel} (${toolMult.toFixed(1)}×)! Earned +${wage} GCOIN and boosted Colony Harmony to ${soc.harmony}%.`);
+    } else if (actionType === 'house') {
+      lin.stamina = 100;
+      lin.wallet += 4;
+      scene.spawnBurst(ent.x, ent.y, '#4ade80', 10);
+      scene.spawnFloatingPopup(ent.x, ent.y, '🏠 RESTED AT HOUSE (100% STAMINA)', '#4ade80');
+      scene.spawnSpeech(lin.id, 'Rested! Stamina 100%!', 2.0);
+      setDialogue(lin, 'HOMESTEAD HOUSE', `${lin.id} rested inside the Homestead House! Stamina fully restored to 100%.`);
     } else if (actionType === 'trade') {
       eatOrTradeAtMarket(lin, ent.x, ent.y, true);
     } else if (actionType === 'handover') {
@@ -140,10 +264,9 @@
     } else if (actionType === 'law') {
       cycleCharterLaw(lin, ent.x, ent.y);
     } else if (actionType === 'upgrade') {
-      upgradeAllIslands(lin, ent.x, ent.y);
+      upgradeAllBuildings(lin, ent.x, ent.y);
     }
 
-    // Automatic 10k-token generational handover check
     if (lin.contextTokens >= lin.contextThreshold && lin.currentGen < lin.maxGen) {
       ascendToNextGen(lin, ent.x, ent.y);
     }
@@ -166,11 +289,10 @@
       scene.spawnFloatingPopup(x, y, '🍞 ATE RATION (+45% STAMINA)', '#4ade80');
       scene.spawnSpeech(lin.id, 'Yum! +45% Stamina!', 2.0);
       if (isPlayer) {
-        setDialogue(lin, 'GCOIN MARKET', `${lin.id} bought a Staple Food Ration from ${seller.id} for 1 GCOIN and restored Stamina to ${lin.stamina}%!`);
+        setDialogue(lin, 'MARKET SHOP TRADE', `${lin.id} bought a Ration from ${seller.id} at the Shop for 1G and restored Stamina to ${lin.stamina}%!`);
       }
       return true;
     }
-    // Fallback free emergency ration from granary
     lin.stamina = Math.min(100, (lin.stamina ?? 60) + 35);
     scene.spawnBurst(x, y, '#fbbf24', 8);
     scene.spawnFloatingPopup(x, y, '🍞 GRANARY RATION (+35% STAMINA)', '#fde047');
@@ -193,7 +315,7 @@
     setDialogue(
       lin,
       '10K-TOKEN DYNASTY HANDOVER',
-      `⚡ ${lin.id} Gen ${prev} retired at 10,000 tokens and passed 100% of Wallet (${lin.wallet}G) & Sales (${lin.completedSales}) to Gen ${lin.currentGen} Heir (+${(lin.currentGen - 1) * 10}% Wage Mastery)!`
+      `⚡ ${lin.id} Gen ${prev} retired at 10,000 tokens and passed Wallet (${lin.wallet}G), Tool Lv.${lin.toolLevel} & ${lin.buildingsOwned || 0} Buildings to Gen ${lin.currentGen} Heir!`
     );
   }
 
@@ -220,24 +342,28 @@
     );
   }
 
-  function upgradeAllIslands(lin, x, y) {
+  function upgradeAllBuildings(lin, x, y) {
     if (soc.treasuryBalance < 15) {
       scene.spawnFloatingPopup(x, y, 'NEED 15 TREASURY GCOIN!', '#f87171');
       return;
     }
     soc.treasuryBalance -= 15;
-    Object.keys(soc.districtLevels).forEach((k) => {
-      soc.districtLevels[k] = Math.min(5, (soc.districtLevels[k] || 2) + 1);
+    scene.placedBuildings.forEach((b) => {
+      b.lv = Math.min(5, (b.lv || 1) + 1);
     });
     scene.spawnAscensionBeam(x, y, '#fde047');
-    scene.spawnFloatingPopup(x, y, '⬆️ ISLANDS UPGRADED! (+YIELD)', '#fde047');
-    setDialogue(lin, 'TREASURY UPGRADE', `Spent 15 Treasury GCOIN to upgrade the Floating Sky Islands! Production & Harmony increased.`);
+    scene.spawnFloatingPopup(x, y, '⬆️ ALL BUILDINGS UPGRADED!', '#fde047');
+    setDialogue(lin, 'TREASURY UPGRADE', `Spent 15 Treasury GCOIN to upgrade all Mainland Houses, Factories, Shops, and Paddlefields!`);
   }
 
-  // Autonomous background simulation tick for the other 9 AI agents
+  // Autonomous background world simulation: AI agents work, use tools, and build Houses/Factories/Shops/Paddlefields!
   function stepAutonomousWorld() {
     if (gameSpeed === 0) return;
     soc.completedTurns += 1;
+
+    // Passive income from built Factories & Shops on the mainland
+    const factoryCount = scene.placedBuildings.filter((b) => b.type === 'factory').length;
+    soc.treasuryBalance += 1 + Math.floor(factoryCount * 0.5);
 
     const aiAgents = soc.lineages.filter((l) => l.id !== playerAgentId);
     const actor = aiAgents[soc.completedTurns % aiAgents.length];
@@ -246,16 +372,28 @@
     const ax = ent ? ent.x : 0;
     const ay = ent ? ent.y : 0;
 
-    actor.stamina = Math.max(15, (actor.stamina ?? 85) - 6);
-    actor.contextTokens += 1150;
-    soc.treasuryBalance += 1; // 1G MCP message tax
+    actor.stamina = Math.max(15, (actor.stamina ?? 85) - 5);
+    actor.contextTokens += 1100;
 
     if (actor.stamina < 55) {
       eatOrTradeAtMarket(actor, ax, ay, false);
     } else if (actor.contextTokens >= actor.contextThreshold && actor.currentGen < actor.maxGen) {
       ascendToNextGen(actor, ax, ay);
+    } else if (actor.wallet >= 32 && scene.placedBuildings.length < 14 && soc.completedTurns % 4 === 0) {
+      // AI agent autonomously builds their role's signature building on an open land plot!
+      const roleBldg = actor.role === 'farmer'
+        ? (Math.random() > 0.5 ? 'house' : 'shop')
+        : actor.role === 'engineer'
+          ? 'factory'
+          : 'paddlefield';
+      const cost = BUILDING_COSTS[roleBldg] || 20;
+      actor.wallet -= cost;
+      actor.buildingsOwned = (actor.buildingsOwned || 0) + 1;
+      scene.buildStructureOnLand(roleBldg, actor.id, ax, ay);
+      scene.spawnSpeech(actor.id, `Built ${roleBldg.toUpperCase()}!`, 2.4);
     } else {
-      const wage = soc.wages[actor.role] || 10;
+      const mult = getToolMultiplier(actor);
+      const wage = Math.round((soc.wages[actor.role] || 10) * mult);
       actor.wallet += wage;
       if (actor.role === 'farmer') {
         const fg = actor.listedGoods.find((g) => g.type === 'food');
@@ -300,6 +438,14 @@
     document.getElementById('hudContextFill').style.width = `${tokPct}%`;
     document.getElementById('hudContextText').textContent = `${(lin.contextTokens / 1000).toFixed(1)}k/10k`;
 
+    // Equipped Work Tool HUD
+    const tMeta = TOOL_META[lin.role] || TOOL_META.farmer;
+    const mult = getToolMultiplier(lin).toFixed(1);
+    document.getElementById('hudToolImg').src = tMeta.icon;
+    document.getElementById('hudToolLv').textContent = `LV.${lin.toolLevel || 1} (${mult}×)`;
+    document.getElementById('hotbarToolIcon').src = tMeta.icon;
+    document.getElementById('hotbarToolName').textContent = tMeta.short;
+
     document.getElementById('hudWallet').textContent = `${lin.wallet}G`;
     document.getElementById('hudPower').textContent = `P:${computePower(lin)} (#${myRank})`;
     document.getElementById('hudTreasury').textContent = `${soc.treasuryBalance}G`;
@@ -309,9 +455,7 @@
       0
     );
     document.getElementById('hudRations').textContent = `${totalRations}`;
-
-    const activeLawObj = DATA.CHARTER_LAWS.find((l) => l.id === soc.activeLaws[0]) || DATA.CHARTER_LAWS[0];
-    document.getElementById('hudLawName').textContent = activeLawObj.name.slice(0, 18);
+    document.getElementById('hudBuildingsCount').textContent = `${scene.placedBuildings.length} Built`;
 
     document.getElementById('hudTurnText').textContent = `DAY ${soc.completedTurns}`;
     if (archon) {
@@ -319,7 +463,7 @@
     }
   }
 
-  // Continuous check for proximity prompt bubble
+  // Proximity prompt check
   setInterval(() => {
     const hotspot = scene.getNearestHotspot();
     const promptEl = document.getElementById('worldPromptBubble');
@@ -332,7 +476,6 @@
     }
   }, 120);
 
-  // Autonomous AI tick timer
   let aiInterval = setInterval(stepAutonomousWorld, 2000);
   function setSpeed(spd) {
     gameSpeed = spd;
@@ -343,12 +486,22 @@
     document.getElementById('btnSpeed').textContent = spd === 0 ? '⏸ PAUSE' : `▶ ${spd}×`;
   }
 
-  // Keyboard bindings for real game feel
+  // Keyboard bindings for walking, working, building (1-4) & upgrading tool (5)
   window.addEventListener('keydown', (e) => {
     keysPressed[e.code] = true;
     if (e.code === 'Space') {
       e.preventDefault();
       performContextualAction();
+    } else if (e.key === '1') {
+      playerBuildStructure('house');
+    } else if (e.key === '2') {
+      playerBuildStructure('factory');
+    } else if (e.key === '3') {
+      playerBuildStructure('shop');
+    } else if (e.key === '4') {
+      playerBuildStructure('paddlefield');
+    } else if (e.key === '5') {
+      playerUpgradeTool();
     } else if (e.code === 'KeyE') {
       e.preventDefault();
       const lin = getPlayerLineage();
@@ -358,13 +511,6 @@
     } else if (e.code === 'Tab') {
       e.preventDefault();
       cycleNextAgent();
-    } else if (e.code === 'KeyW' && e.shiftKey) {
-      document.getElementById('btnWeather').click();
-    } else if (e.key >= '1' && e.key <= '9') {
-      const idx = Number(e.key) - 1;
-      if (soc.lineages[idx]) switchPlayerAgent(soc.lineages[idx].id);
-    } else if (e.key === '0' && soc.lineages[9]) {
-      switchPlayerAgent(soc.lineages[9].id);
     }
   });
 
@@ -372,8 +518,23 @@
     keysPressed[e.code] = false;
   });
 
-  // Minimal HUD icon clicks
-  document.getElementById('playerCardBtn').addEventListener('click', () => cycleNextAgent());
+  // Hotbar slot clicks
+  document.querySelectorAll('.hotbar-slot').forEach((slot) => {
+    slot.addEventListener('click', () => {
+      const kind = slot.dataset.slot;
+      if (kind === 'tool') {
+        playerUpgradeTool();
+      } else {
+        playerBuildStructure(kind);
+      }
+    });
+  });
+
+  document.getElementById('equippedToolBox').addEventListener('click', () => playerUpgradeTool());
+  document.getElementById('playerCardBtn').addEventListener('click', (e) => {
+    if (e.target.closest('#equippedToolBox')) return;
+    cycleNextAgent();
+  });
   document.getElementById('worldPromptBubble').addEventListener('click', () => performContextualAction());
 
   document.getElementById('btnWeather').addEventListener('click', (e) => {

@@ -1,10 +1,8 @@
-// AGENT SOCIETY — REAL-TIME PLAYABLE PIXEL-ART 3D FLOATING-ISLAND GAME ENGINE
-// Inspired by Tripo3D "Love All: Pixel-Art 3D Tennis Club Game" & Gamoji 6-Role Diorama
-// Features:
-// - Direct WASD / Arrow / Click-to-Move player control
-// - 9 autonomous AI agents walking, harvesting, crafting, trading & rallying on the pixel court in real time
-// - Physical bouncing pixel coins, wheat, gears, lightning beams & speech bubbles
-// - Live Pixel Tennis / Civic Rally mini-game on the Town Hall Clubhouse Court
+// AGENT SOCIETY — PIXEL-ART 3D MAINLAND BUILDER & DYNASTY GAME ENGINE
+// Continuous 2.5D Pixel-Art Mainland with:
+// - Buildable Houses (pixel-house.png), Factories (pixel-factory.png), Shops (pixel-shop.png), and Paddlefields (pixel-paddlefield.png)
+// - Visible Equipped Role Work Tools (Scythe, Power Wrench, Paddle Racket, Builder Hammer) with swing animations
+// - Direct WASD / Arrow / Click-to-Move player control + 9 autonomous AI agents
 
 window.IsometricSocietyScene = class IsometricSocietyScene {
   constructor(canvas, callbacks = {}) {
@@ -17,8 +15,8 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
 
     this.camera = {
       x: 0,
-      y: 10,
-      zoom: 1.08,
+      y: 12,
+      zoom: 1.05,
       followPlayer: true,
       isDragging: false,
       dragStartX: 0,
@@ -30,103 +28,104 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
     this.lastTs = performance.now();
     this.society = null;
     this.playerAgentId = 'farmer-1';
-    this.pixelScale = 2; // 2x crisp 16-bit pixel shader
+    this.pixelScale = 2;
     this.weatherMode = 'sunny';
 
-    // Real-time agent physics entities: id -> { x, y, vx, vy, targetX, targetY, facing, aiTimer, speech, speechTimer, actionAnim }
+    // Real-time agent entities on the mainland
     this.entities = {};
-    // Physical bouncing collectible particles (coins, wheat, gears, sparks)
     this.particles = [];
-    // Floating combat/reward text popups
     this.floatingPopups = [];
-    // Lightning / ascension beams
     this.beams = [];
 
-    // Live Pixel Tennis / Civic Rally ball on the Town Hall Court island (x: 230, y: 185)
-    this.courtBall = {
-      x: 230,
-      y: 175,
-      z: 12,
-      vx: 55,
-      vy: 22,
-      vz: 45,
-      rallyCount: 0
-    };
+    // Built structures on the Mainland (both pre-existing & newly built by Player/AI)
+    // Types: 'house' | 'factory' | 'shop' | 'paddlefield'
+    this.placedBuildings = [
+      { id: 'b-house-1', type: 'house', name: 'Farmer Homestead', owner: 'farmer-1', x: -165, y: -185, lv: 1, ballPhase: 0 },
+      { id: 'b-factory-1', type: 'factory', name: 'Blueprint Foundry', owner: 'engineer-8', x: 135, y: -185, lv: 2, ballPhase: 1 },
+      { id: 'b-shop-1', type: 'shop', name: 'Central Ration Shop', owner: 'farmer-4', x: 155, y: 15, lv: 1, ballPhase: 2 },
+      { id: 'b-paddle-1', type: 'paddlefield', name: 'Club Paddlefield #1', owner: 'manager-3', x: 230, y: 185, lv: 2, ballPhase: 0 }
+    ];
 
-    // Island definitions & interactive hotspot zones
-    this.islands = {
+    // Pre-marked buildable land plots (players can also build anywhere on the mainland!)
+    this.buildPlots = [
+      { x: -145, y: -45 },
+      { x: 145, y: -55 },
+      { x: -120, y: 95 },
+      { x: 95, y: 115 },
+      { x: -310, y: -50 },
+      { x: 310, y: -55 },
+      { x: -75, y: -175 },
+      { x: 65, y: 205 },
+      { x: -340, y: 130 },
+      { x: 355, y: 145 }
+    ];
+
+    // Core Mainland Landmarks / Work Zones
+    this.landmarks = {
       'farmstead': {
         id: 'farmstead',
-        x: -255,
-        y: -155,
-        title: 'FARMSTEAD FIELDS',
+        x: -320,
+        y: -165,
+        title: 'GOLDEN WHEAT FARMLAND',
         color: '#4ade80',
-        prompt: 'Harvest Golden Wheat (+Wage GCOIN & +5 Rations)',
+        prompt: 'Swing Scythe to Harvest Wheat (+Wage GCOIN & +Rations)',
         actionType: 'harvest'
       },
       'workshop': {
         id: 'workshop',
-        x: 255,
-        y: -155,
-        title: 'ENGINEER WORKSHOP',
+        x: 285,
+        y: -165,
+        title: 'ENGINEER TECH RIG',
         color: '#38bdf8',
-        prompt: 'Craft Storage & Irrigation Blueprint (+Wage GCOIN & +Tech)',
+        prompt: 'Use Wrench to Craft Blueprint (+Wage GCOIN & +Tech)',
         actionType: 'craft'
       },
       'lineage-hall': {
         id: 'lineage-hall',
-        x: -375,
-        y: 15,
-        title: 'LINEAGE SHRINE',
+        x: -385,
+        y: 25,
+        title: 'LINEAGE ASCENSION SHRINE',
         color: '#c084fc',
         prompt: 'Ascend to Gen +1 Heir (+10% Permanent Wage Mastery)',
         actionType: 'handover'
       },
       'market-exchange': {
         id: 'market-exchange',
-        x: 375,
-        y: 15,
-        title: 'GCOIN MARKET BRIDGE',
+        x: 365,
+        y: 20,
+        title: 'RIVER MARKET BRIDGE',
         color: '#fbbf24',
         prompt: 'Trade Goods & Eat Ration (+45% Stamina & +Sales Power)',
         actionType: 'trade'
       },
       'charter-court': {
         id: 'charter-court',
-        x: -230,
-        y: 185,
-        title: 'ARCHON CHARTER COURT',
+        x: -245,
+        y: 190,
+        title: 'ARCHON CHARTER MONOLITH',
         color: '#f472b6',
         prompt: 'Enact / Cycle Colony Charter Law (Archon Decree)',
         actionType: 'law'
-      },
-      'town-hall': {
-        id: 'town-hall',
-        x: 230,
-        y: 185,
-        title: 'PIXEL CLUBHOUSE & COURT',
-        color: '#34d399',
-        prompt: 'Play Civic Rally on the Court (+Harmony & +Wage GCOIN)',
-        actionType: 'rally'
       },
       'core': {
         id: 'core',
         x: 0,
         y: 5,
-        title: 'GCOIN TREASURY CORE',
+        title: 'TOWN PLAZA & TREASURY',
         color: '#22d3ee',
-        prompt: 'Upgrade Floating Island Level (15 Treasury GCOIN)',
+        prompt: 'Upgrade All Mainland Buildings (15 Treasury GCOIN)',
         actionType: 'upgrade'
       }
     };
 
-    this.clouds = [
-      { x: -580, y: -310, w: 92, h: 28, speed: 14 },
-      { x: -180, y: -350, w: 116, h: 34, speed: 10 },
-      { x: 240, y: -320, w: 98, h: 28, speed: 15 },
-      { x: 520, y: -260, w: 80, h: 24, speed: 12 },
-      { x: -490, y: 260, w: 92, h: 26, speed: 11 },
-      { x: 430, y: 285, w: 102, h: 30, speed: 13 }
+    // Decorative forest trees around the mainland perimeter
+    this.trees = [
+      { x: -495, y: -230 }, { x: -445, y: -255 }, { x: -215, y: -260 },
+      { x: -40, y: -265 }, { x: 65, y: -260 }, { x: 215, y: -260 },
+      { x: 430, y: -245 }, { x: 495, y: -195 }, { x: -510, y: -90 },
+      { x: -515, y: 110 }, { x: -460, y: 245 }, { x: -360, y: 265 },
+      { x: -135, y: 265 }, { x: 15, y: 270 }, { x: 385, y: 255 },
+      { x: 485, y: 215 }, { x: 515, y: 80 }
     ];
 
     this.rainDrops = Array.from({ length: 80 }, (_, i) => ({
@@ -155,6 +154,15 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       pixelMonolith: './assets/sprites/pixel-monolith.png',
       pixelClubhouse: './assets/sprites/pixel-clubhouse.png',
       pixelTree: './assets/sprites/pixel-tree.png',
+      // New Role Buildable Buildings & Work Tools
+      pixelHouse: './assets/sprites/pixel-house.png',
+      pixelFactory: './assets/sprites/pixel-factory.png',
+      pixelShop: './assets/sprites/pixel-shop.png',
+      pixelPaddlefield: './assets/sprites/pixel-paddlefield.png',
+      toolScythe: './assets/sprites/pixel-tool-scythe.png',
+      toolWrench: './assets/sprites/pixel-tool-wrench.png',
+      toolRacket: './assets/sprites/pixel-tool-racket.png',
+      toolHammer: './assets/sprites/pixel-tool-hammer.png',
       ancestorSvg: './assets/sprites/char-ancestor.svg'
     };
     Object.entries(manifest).forEach(([k, src]) => {
@@ -213,7 +221,7 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
     this.canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
       const factor = e.deltaY < 0 ? 1.09 : 0.92;
-      this.camera.zoom = Math.max(0.65, Math.min(2.1, this.camera.zoom * factor));
+      this.camera.zoom = Math.max(0.62, Math.min(2.1, this.camera.zoom * factor));
     }, { passive: false });
   }
 
@@ -229,7 +237,7 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
   _handleWorldClick(wx, wy) {
     if (!this.society) return;
 
-    // 1. Check if user clicked directly on another agent to switch control to them
+    // 1. Check if user clicked on another agent to switch control
     for (const lin of this.society.lineages) {
       const ent = this.entities[lin.id];
       if (!ent) continue;
@@ -241,13 +249,12 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       }
     }
 
-    // 2. Otherwise walk the player character to the clicked world coordinate!
+    // 2. Otherwise walk the player character across the mainland to the clicked coordinate
     const playerEnt = this.entities[this.playerAgentId];
     if (playerEnt) {
       playerEnt.targetX = Math.max(-520, Math.min(520, wx));
-      playerEnt.targetY = Math.max(-270, Math.min(270, wy));
+      playerEnt.targetY = Math.max(-260, Math.min(260, wy));
       this.camera.followPlayer = true;
-      // Spawn click ripple particle
       this.spawnBurst(wx, wy, '#fde047', 4);
     }
   }
@@ -264,32 +271,31 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
 
   _syncEntities() {
     if (!this.society) return;
-    const roleIslands = {
-      farmer: 'farmstead',
-      engineer: 'workshop',
-      manager: 'town-hall'
+    const roleStarts = {
+      farmer: { x: -290, y: -140 },
+      engineer: { x: 250, y: -140 },
+      manager: { x: 210, y: 170 }
     };
 
     this.society.lineages.forEach((lin, idx) => {
+      if (!lin.toolLevel) lin.toolLevel = 1;
       if (!this.entities[lin.id]) {
-        const homeId = roleIslands[lin.role] || 'town-hall';
-        const isl = this.islands[homeId];
+        const base = roleStarts[lin.role] || { x: 0, y: 20 };
         const angle = (idx / this.society.lineages.length) * Math.PI * 2;
-        const ox = Math.cos(angle) * 38;
-        const oy = Math.sin(angle) * 20 + 8;
         this.entities[lin.id] = {
           id: lin.id,
-          x: isl.x + ox,
-          y: isl.y + oy,
+          x: base.x + Math.cos(angle) * 45,
+          y: base.y + Math.sin(angle) * 26,
           vx: 0,
           vy: 0,
           targetX: null,
           targetY: null,
           facing: 1,
-          aiTimer: 1.5 + (idx % 4) * 0.8,
+          aiTimer: 1.4 + (idx % 4) * 0.7,
           speech: '',
           speechTimer: 0,
-          actionAnim: 0
+          actionAnim: 0,
+          overrideTool: null
         };
       }
     });
@@ -299,19 +305,113 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
     return this.entities[this.playerAgentId];
   }
 
-  // Find the nearest interactive island hotspot within interaction distance of the player
+  // Construct a new House, Factory, Shop, or Paddlefield on the Mainland!
+  buildStructureOnLand(type, ownerId, customX = null, customY = null) {
+    const ent = this.entities[ownerId] || this.getPlayerEntity();
+    let bx = customX !== null ? customX : (ent ? ent.x : 0);
+    let by = customY !== null ? customY : (ent ? ent.y - 12 : 0);
+
+    // Snap to nearest open buildPlot if within 65px, otherwise place beside character
+    let snappedPlot = null;
+    for (const plot of this.buildPlots) {
+      const occupied = this.placedBuildings.some((b) => Math.hypot(b.x - plot.x, b.y - plot.y) < 52);
+      if (!occupied && Math.hypot(bx - plot.x, by - plot.y) < 75) {
+        snappedPlot = plot;
+        break;
+      }
+    }
+    if (snappedPlot) {
+      bx = snappedPlot.x;
+      by = snappedPlot.y;
+    } else {
+      // If standing on top of an existing building, nudge slightly so it doesn't overlap
+      for (const b of this.placedBuildings) {
+        if (Math.hypot(bx - b.x, by - b.y) < 55) {
+          bx += (Math.random() > 0.5 ? 64 : -64);
+          by += (Math.random() - 0.5) * 36;
+        }
+      }
+    }
+
+    bx = Math.max(-450, Math.min(450, Math.round(bx)));
+    by = Math.max(-220, Math.min(220, Math.round(by)));
+
+    const labels = {
+      house: 'Homestead House',
+      factory: 'Automation Factory',
+      shop: 'GCOIN Market Shop',
+      paddlefield: 'Paddlefield Court'
+    };
+
+    const newBldg = {
+      id: `b-${type}-${Date.now()}`,
+      type,
+      name: `${labels[type] || type}`,
+      owner: ownerId,
+      x: bx,
+      y: by,
+      lv: 1,
+      ballPhase: Math.random() * 6
+    };
+    this.placedBuildings.push(newBldg);
+
+    if (ent) {
+      ent.actionAnim = 0.6;
+      ent.overrideTool = 'toolHammer';
+      setTimeout(() => {
+        if (ent) ent.overrideTool = null;
+      }, 650);
+    }
+
+    this.spawnAscensionBeam(bx, by, '#fde047');
+    this.spawnBurst(bx, by, '#fde047', 16);
+    this.spawnFloatingPopup(bx, by, `🏗️ BUILT ${type.toUpperCase()}!`, '#fde047');
+    return newBldg;
+  }
+
+  // Find the nearest interactive landmark or player-built structure within 82px
   getNearestHotspot() {
     const ent = this.getPlayerEntity();
     if (!ent) return null;
     let best = null;
-    let bestDist = 92; // activation radius
-    Object.values(this.islands).forEach((isl) => {
-      const d = Math.hypot(ent.x - isl.x, ent.y - isl.y);
+    let bestDist = 85;
+
+    Object.values(this.landmarks).forEach((lm) => {
+      const d = Math.hypot(ent.x - lm.x, ent.y - lm.y);
       if (d < bestDist) {
         bestDist = d;
-        best = isl;
+        best = lm;
       }
     });
+
+    this.placedBuildings.forEach((b) => {
+      const d = Math.hypot(ent.x - b.x, ent.y - b.y);
+      if (d < bestDist) {
+        bestDist = d;
+        const prompts = {
+          house: 'Rest at House (+35% Stamina & +Heir XP)',
+          factory: 'Operate Factory (+Blueprint & +Wage GCOIN)',
+          shop: 'Trade at Market Shop (+Ration & +Sales Power)',
+          paddlefield: 'Play Paddlefield Rally (+Harmony & +Wage GCOIN)'
+        };
+        const actions = {
+          house: 'house',
+          factory: 'craft',
+          shop: 'trade',
+          paddlefield: 'rally'
+        };
+        best = {
+          id: b.id,
+          x: b.x,
+          y: b.y,
+          title: `${b.name.toUpperCase()} (${b.owner})`,
+          prompt: prompts[b.type],
+          actionType: actions[b.type],
+          buildingRef: b
+        };
+      }
+    });
+
     return best;
   }
 
@@ -326,7 +426,7 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
     });
   }
 
-  spawnSpeech(agentId, text, duration = 3.2) {
+  spawnSpeech(agentId, text, duration = 2.8) {
     const ent = this.entities[agentId];
     if (!ent) return;
     ent.speech = text;
@@ -358,9 +458,9 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       y,
       color,
       createdAt: this.time,
-      duration: 1.2
+      duration: 1.1
     });
-    this.spawnBurst(x, y, color, 18);
+    this.spawnBurst(x, y, color, 16);
   }
 
   triggerPlayerActionAnim() {
@@ -394,7 +494,6 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
   _updatePhysics(dt) {
     if (!this.society) return;
 
-    // 1. Update Player WASD / Click-to-Move movement
     const keys = this.callbacks.getKeys ? this.callbacks.getKeys() : {};
     const playerEnt = this.getPlayerEntity();
     if (playerEnt) {
@@ -405,7 +504,7 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       if (keys.KeyA || keys.ArrowLeft) dx -= 1;
       if (keys.KeyD || keys.ArrowRight) dx += 1;
 
-      const moveSpeed = 135;
+      const moveSpeed = 140;
       if (dx !== 0 || dy !== 0) {
         const len = Math.hypot(dx, dy);
         playerEnt.vx = (dx / len) * moveSpeed;
@@ -432,22 +531,21 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       }
 
       playerEnt.x = Math.max(-520, Math.min(520, playerEnt.x + playerEnt.vx * dt));
-      playerEnt.y = Math.max(-270, Math.min(270, playerEnt.y + playerEnt.vy * dt));
+      playerEnt.y = Math.max(-250, Math.min(250, playerEnt.y + playerEnt.vy * dt));
       if (Math.abs(playerEnt.vx) > 5) {
         playerEnt.facing = playerEnt.vx > 0 ? 1 : -1;
       }
 
-      // Smoothly pan camera toward player when followPlayer is true
       if (this.camera.followPlayer) {
-        const desiredX = -playerEnt.x * this.camera.zoom * 0.38;
-        const desiredY = -playerEnt.y * this.camera.zoom * 0.38 + 10;
+        const desiredX = -playerEnt.x * this.camera.zoom * 0.35;
+        const desiredY = -playerEnt.y * this.camera.zoom * 0.35 + 10;
         this.camera.x += (desiredX - this.camera.x) * Math.min(1, dt * 5);
         this.camera.y += (desiredY - this.camera.y) * Math.min(1, dt * 5);
       }
     }
 
-    // 2. Update Autonomous AI Agents (walk between islands, work, trade, chat)
-    const islandList = Object.values(this.islands);
+    // Update Autonomous AI Agents roaming the mainland
+    const allTargets = [...Object.values(this.landmarks), ...this.placedBuildings];
     this.society.lineages.forEach((lin) => {
       const ent = this.entities[lin.id];
       if (!ent) return;
@@ -458,26 +556,22 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
 
       ent.aiTimer -= dt;
       if (ent.aiTimer <= 0) {
-        ent.aiTimer = 3.2 + Math.random() * 4.0;
-        // Decide where this AI agent wants to walk:
-        // Hungry -> Market Bridge; High tokens -> Lineage Shrine; Otherwise -> Home Island or Core
-        let destIsl = this.islands[lin.homeDistrictId] || this.islands['town-hall'];
+        ent.aiTimer = 3.0 + Math.random() * 3.8;
+        let dest = allTargets[Math.floor(Math.random() * allTargets.length)];
         if ((lin.stamina ?? 85) < 55) {
-          destIsl = this.islands['market-exchange'];
+          dest = this.landmarks['market-exchange'];
         } else if (lin.contextTokens > 8200) {
-          destIsl = this.islands['lineage-hall'];
-        } else if (Math.random() < 0.28) {
-          destIsl = islandList[Math.floor(Math.random() * islandList.length)];
+          dest = this.landmarks['lineage-hall'];
         }
-        ent.targetX = destIsl.x + (Math.random() - 0.5) * 76;
-        ent.targetY = destIsl.y + (Math.random() - 0.5) * 38 + 6;
+        ent.targetX = dest.x + (Math.random() - 0.5) * 70;
+        ent.targetY = dest.y + (Math.random() - 0.5) * 36 + 10;
       }
 
       if (ent.targetX !== null && ent.targetY !== null) {
         const dx = ent.targetX - ent.x;
         const dy = ent.targetY - ent.y;
         const dist = Math.hypot(dx, dy);
-        const aiSpeed = 68;
+        const aiSpeed = 72;
         if (dist > 4) {
           ent.vx = (dx / dist) * aiSpeed;
           ent.vy = (dy / dist) * aiSpeed;
@@ -489,34 +583,12 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
           ent.targetY = null;
           ent.vx = 0;
           ent.vy = 0;
+          ent.actionAnim = 0.4;
         }
       }
     });
 
-    // 3. Update Live Pixel Tennis / Civic Rally Ball on the Town Hall Court (x: 230, y: 185)
-    const b = this.courtBall;
-    b.x += b.vx * dt;
-    b.y += b.vy * dt;
-    b.z += b.vz * dt;
-    b.vz -= 190 * dt; // gravity
-    if (b.z <= 0) {
-      b.z = 0;
-      b.vz = 72; // bounce on turf
-    }
-    // Bounce back and forth between left & right sides of the pixel court
-    if (b.x > 268) {
-      b.x = 268;
-      b.vx = -Math.abs(b.vx);
-      b.vy = (Math.random() - 0.5) * 28;
-      b.vz = 82;
-    } else if (b.x < 192) {
-      b.x = 192;
-      b.vx = Math.abs(b.vx);
-      b.vy = (Math.random() - 0.5) * 28;
-      b.vz = 82;
-    }
-
-    // 4. Update 3D Bouncing Particles
+    // Update 3D Bouncing Particles
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.age += dt;
@@ -589,384 +661,232 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
   }
 
   _renderWorld(ctx) {
-    this._drawSkyAndWeather(ctx);
+    this._drawOceanBackdrop(ctx);
 
     ctx.save();
     ctx.translate(this.width * 0.5 + this.camera.x, this.height * 0.5 + this.camera.y);
     ctx.scale(this.camera.zoom, this.camera.zoom);
     ctx.imageSmoothingEnabled = false;
 
-    this._drawClouds(ctx, 'back');
-    this._drawBridgesAndConduits(ctx);
-
     const nearestHotspot = this.getNearestHotspot();
 
-    // Back Islands
-    this._drawFloatingIsland(ctx, 'farmstead', nearestHotspot);
-    this._drawFloatingIsland(ctx, 'workshop', nearestHotspot);
+    // 1. Continuous 2.5D Pixel-Art Mainland Continent (Beach, Turf, Roads, River & Build Plots)
+    this._drawContinuousMainland(ctx, nearestHotspot);
 
-    // Mid Islands + Central Core
-    this._drawFloatingIsland(ctx, 'lineage-hall', nearestHotspot);
-    this._drawFloatingIsland(ctx, 'market-exchange', nearestHotspot);
-    this._drawCentralCoreIsland(ctx, nearestHotspot);
+    // 2. Core Mainland Landmarks
+    this._drawMainlandLandmarks(ctx, nearestHotspot);
 
-    // Front Islands
-    this._drawFloatingIsland(ctx, 'charter-court', nearestHotspot);
-    this._drawFloatingIsland(ctx, 'town-hall', nearestHotspot);
+    // 3. Y-Sorted Render of Trees, Built Structures (House, Factory, Shop, Paddlefield), Agents & Particles
+    this._drawSortedEntitiesAndBuildings(ctx, nearestHotspot);
 
-    // Y-sorted render of all 10 Agents + Court Tennis Ball + Particles
-    this._drawAgentsAndParticles(ctx);
-
-    // Ascension beams & floating popups
+    // 4. Ascension Beams & Popups
     this._drawBeamsAndPopups(ctx);
-
-    this._drawClouds(ctx, 'front');
     this._drawRain(ctx);
 
     ctx.restore();
   }
 
-  _drawSkyAndWeather(ctx) {
+  _drawOceanBackdrop(ctx) {
     const w = this.width;
     const h = this.height;
     const grad = ctx.createLinearGradient(0, 0, 0, h);
     if (this.weatherMode === 'sunny') {
       grad.addColorStop(0, '#0284c7');
-      grad.addColorStop(0.45, '#38bdf8');
-      grad.addColorStop(0.82, '#7dd3fc');
-      grad.addColorStop(1, '#bae6fd');
+      grad.addColorStop(0.5, '#0ea5e9');
+      grad.addColorStop(1, '#0369a1');
     } else if (this.weatherMode === 'sunset') {
-      grad.addColorStop(0, '#311042');
-      grad.addColorStop(0.38, '#9d174d');
-      grad.addColorStop(0.72, '#f97316');
-      grad.addColorStop(1, '#fde047');
+      grad.addColorStop(0, '#4c1d95');
+      grad.addColorStop(0.5, '#be185d');
+      grad.addColorStop(1, '#ea580c');
     } else if (this.weatherMode === 'rain') {
       grad.addColorStop(0, '#0f172a');
-      grad.addColorStop(0.5, '#1e293b');
-      grad.addColorStop(1, '#475569');
+      grad.addColorStop(1, '#334155');
     } else {
-      grad.addColorStop(0, '#050814');
-      grad.addColorStop(0.5, '#0f172a');
-      grad.addColorStop(1, '#1e1b4b');
+      grad.addColorStop(0, '#020617');
+      grad.addColorStop(1, '#0f172a');
     }
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, h);
 
-    if (this.weatherMode === 'sunny' || this.weatherMode === 'sunset') {
-      const sx = Math.round(w * 0.84);
-      const sy = Math.round(h * 0.14);
-      ctx.fillStyle = this.weatherMode === 'sunny' ? 'rgba(253, 224, 71, 0.3)' : 'rgba(251, 146, 60, 0.35)';
-      ctx.fillRect(sx - 36, sy - 36, 72, 72);
-      ctx.fillStyle = this.weatherMode === 'sunny' ? '#fef08a' : '#fb923c';
-      ctx.fillRect(sx - 20, sy - 20, 40, 40);
-    } else {
-      for (let i = 0; i < 45; i++) {
-        const sx = (i * 179) % w;
-        const sy = (i * 97) % Math.floor(h * 0.7);
-        const s = Math.sin(this.time * 2.5 + i) > 0 ? 4 : 2;
-        ctx.fillStyle = i % 3 === 0 ? '#67e8f9' : '#ffffff';
-        ctx.fillRect(sx, sy, s, s);
-      }
+    // Animated pixel ocean wave sparkles
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+    for (let i = 0; i < 42; i++) {
+      const wx = ((i * 193 + Math.floor(this.time * 18)) % w);
+      const wy = ((i * 107) % h);
+      ctx.fillRect(wx, wy, 14, 3);
     }
   }
 
-  _drawClouds(ctx, layer) {
-    if (this.weatherMode === 'night') return;
-    const col = this.weatherMode === 'sunset'
-      ? { top: '#fed7aa', mid: '#fdba74', bot: '#f97316' }
-      : this.weatherMode === 'rain'
-        ? { top: '#94a3b8', mid: '#64748b', bot: '#475569' }
-        : { top: '#ffffff', mid: '#e0f2fe', bot: '#bae6fd' };
+  _drawContinuousMainland(ctx, nearestHotspot) {
+    // Outer sandy beach shore & cliff bevel
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(-580, -296, 1160, 616);
 
-    this.clouds.forEach((c, idx) => {
-      if ((layer === 'back' && idx >= 4) || (layer === 'front' && idx < 4)) return;
-      const cx = ((c.x + this.time * c.speed + 780) % 1560) - 780;
-      const cy = c.y + Math.sin(this.time + idx) * 4;
-      ctx.fillStyle = col.bot;
-      ctx.fillRect(cx - c.w * 0.5, cy, c.w, c.h * 0.5);
-      ctx.fillStyle = col.mid;
-      ctx.fillRect(cx - c.w * 0.4, cy - c.h * 0.35, c.w * 0.8, c.h * 0.55);
-      ctx.fillStyle = col.top;
-      ctx.fillRect(cx - c.w * 0.25, cy - c.h * 0.65, c.w * 0.5, c.h * 0.5);
-    });
-  }
+    ctx.fillStyle = '#fde68a';
+    ctx.fillRect(-574, -290, 1148, 594);
 
-  _drawRain(ctx) {
-    if (this.weatherMode !== 'rain') return;
-    ctx.fillStyle = '#7dd3fc';
-    this.rainDrops.forEach((d) => {
-      const rx = ((d.x - this.time * 85 + 700) % 1400) - 700;
-      const ry = ((d.y + this.time * d.speed + 430) % 860) - 430;
-      ctx.fillRect(rx, ry, 2, 4);
-      ctx.fillRect(rx - 2, ry + 4, 2, 4);
-    });
-  }
+    // Lush green mainland continent turf with subtle pixel grass patches
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(-556, -276, 1112, 560);
 
-  // Walkable wooden/neon pixel bridges connecting the floating islands to the Central Core
-  _drawBridgesAndConduits(ctx) {
-    const core = this.islands['core'];
-    ['farmstead', 'workshop', 'lineage-hall', 'market-exchange', 'charter-court', 'town-hall'].forEach((id, idx) => {
-      const isl = this.islands[id];
-      const steps = 16;
-      for (let s = 1; s < steps; s++) {
-        const t = s / steps;
-        const bx = core.x + (isl.x - core.x) * t;
-        const by = (core.y + 8) + (isl.y - core.y) * t;
-        // Stepped pixel plank + glowing rail
-        ctx.fillStyle = '#78350f';
-        ctx.fillRect(bx - 12, by - 4, 24, 8);
-        ctx.fillStyle = '#b45309';
-        ctx.fillRect(bx - 10, by - 3, 20, 5);
-        const pulse = ((Math.floor(this.time * 6) + s + idx) % 6) === 0;
-        ctx.fillStyle = pulse ? '#fde047' : isl.color;
-        ctx.fillRect(bx - 12, by - 4, 3, 3);
-        ctx.fillRect(bx + 9, by + 1, 3, 3);
+    // Checkerboard grass texture patches across the mainland
+    for (let gy = -260; gy <= 250; gy += 45) {
+      for (let gx = -520; gx <= 500; gx += 65) {
+        ctx.fillStyle = ((gx + gy) & 1) === 0 ? '#16a34a' : '#4ade80';
+        ctx.fillRect(gx, gy, 28, 16);
       }
-    });
-  }
-
-  _drawIsoPlatform(ctx, cx, cy, halfW, halfD, height, colors) {
-    const topPts = [
-      { x: cx, y: cy - halfD },
-      { x: cx + halfW, y: cy },
-      { x: cx, y: cy + halfD },
-      { x: cx - halfW, y: cy }
-    ];
-
-    if (colors.shadow) {
-      ctx.fillStyle = colors.shadow;
-      ctx.beginPath();
-      ctx.moveTo(cx, cy - halfD + height + 14);
-      ctx.lineTo(cx + halfW + 14, cy + height + 14);
-      ctx.lineTo(cx, cy + halfD + height + 20);
-      ctx.lineTo(cx - halfW - 14, cy + height + 14);
-      ctx.closePath();
-      ctx.fill();
     }
 
-    // Left face
-    ctx.beginPath();
-    ctx.moveTo(topPts[3].x, topPts[3].y);
-    ctx.lineTo(topPts[2].x, topPts[2].y);
-    ctx.lineTo(topPts[2].x, topPts[2].y + height);
-    ctx.lineTo(topPts[3].x, topPts[3].y + height);
-    ctx.closePath();
-    ctx.fillStyle = colors.left;
-    ctx.fill();
-    ctx.strokeStyle = colors.stroke || '#0f172a';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    // Right face
-    ctx.beginPath();
-    ctx.moveTo(topPts[2].x, topPts[2].y);
-    ctx.lineTo(topPts[1].x, topPts[1].y);
-    ctx.lineTo(topPts[1].x, topPts[1].y + height);
-    ctx.lineTo(topPts[2].x, topPts[2].y + height);
-    ctx.closePath();
-    ctx.fillStyle = colors.right;
-    ctx.fill();
-    ctx.stroke();
-
-    // Top face
-    ctx.beginPath();
-    ctx.moveTo(topPts[0].x, topPts[0].y);
-    ctx.lineTo(topPts[1].x, topPts[1].y);
-    ctx.lineTo(topPts[2].x, topPts[2].y);
-    ctx.lineTo(topPts[3].x, topPts[3].y);
-    ctx.closePath();
-    ctx.fillStyle = colors.top;
-    ctx.fill();
-    ctx.strokeStyle = colors.topStroke || '#0f172a';
-    ctx.lineWidth = colors.topStrokeWidth || 1.8;
-    ctx.stroke();
-  }
-
-  _drawCliffRoot(ctx, cx, cy, halfW, halfD) {
-    this._drawIsoPlatform(ctx, cx, cy + 28, halfW * 0.82, halfD * 0.82, 16, {
-      top: '#92400e',
-      left: '#78350f',
-      right: '#451a03',
-      shadow: 'rgba(15, 23, 42, 0.32)'
-    });
-    this._drawIsoPlatform(ctx, cx, cy + 42, halfW * 0.55, halfD * 0.55, 15, {
-      top: '#475569',
-      left: '#334155',
-      right: '#1e293b'
-    });
-    this._drawIsoPlatform(ctx, cx, cy + 54, halfW * 0.28, halfD * 0.28, 12, {
-      top: '#334155',
-      left: '#1e293b',
-      right: '#0f172a'
-    });
-
-    // Hanging green pixel vines
-    [-0.6, -0.25, 0.15, 0.5].forEach((vo, i) => {
-      const vx = cx + vo * halfW;
-      const vy = cy + (1 - Math.abs(vo)) * halfD + 4;
-      ctx.fillStyle = i % 2 === 0 ? '#22c55e' : '#15803d';
-      for (let s = 0; s < 14; s += 3) {
-        ctx.fillRect(vx + ((s / 3) & 1) * 2, vy + s, 3, 3);
-      }
-    });
-  }
-
-  _drawPixelWaterfall(ctx, x, y, h = 44) {
-    for (let wy = 0; wy < h; wy += 4) {
-      const foam = ((Math.floor(this.time * 9) + wy) % 8) < 4;
-      ctx.fillStyle = foam ? '#e0f2fe' : '#38bdf8';
-      ctx.fillRect(x - 6, y + wy, 12, 4);
+    // Sparkling River winding N->S on the right side of the mainland (around x = 235..265)
+    for (let ry = -276; ry < 284; ry += 12) {
+      const bend = Math.round(Math.sin(ry * 0.015) * 28);
+      const rx = 250 + bend;
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(rx - 26, ry, 52, 14);
+      const foam = ((Math.floor(this.time * 6) + ry) % 24) < 8;
+      ctx.fillStyle = foam ? '#bae6fd' : '#38bdf8';
+      ctx.fillRect(rx - 18, ry + 2, 36, 10);
     }
-    const mw = 18 + Math.sin(this.time * 6) * 4;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(x - mw / 2, y + h - 2, mw, 5);
+
+    // Cobblestone & Dirt Mainland Roads connecting all districts & plots
+    ctx.fillStyle = '#d6d3d1';
+    // Main East-West Highway
+    ctx.fillRect(-450, -6, 900, 26);
+    // North-South Central Avenue
+    ctx.fillRect(-16, -230, 32, 460);
+    // Farmstead & Workshop North Road
+    ctx.fillRect(-360, -165, 680, 20);
+    // Charter & Paddlefield South Road
+    ctx.fillRect(-290, 175, 560, 20);
+
+    // Cobblestone pixel bricks along the roads
+    ctx.fillStyle = '#a8a29e';
+    for (let rx = -430; rx <= 430; rx += 28) {
+      ctx.fillRect(rx, 2, 14, 8);
+      ctx.fillRect(rx + 8, -160, 12, 6);
+    }
+
+    // Buildable Land Plot Markers (dashed golden pixel squares where roles can construct buildings)
+    this.buildPlots.forEach((plot) => {
+      const occupied = this.placedBuildings.some((b) => Math.hypot(b.x - plot.x, b.y - plot.y) < 48);
+      if (occupied) return;
+      ctx.strokeStyle = 'rgba(253, 224, 71, 0.55)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(plot.x - 28, plot.y - 16, 56, 32);
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
+      ctx.fillRect(plot.x - 26, plot.y - 14, 52, 28);
+      ctx.fillStyle = '#fef08a';
+      ctx.font = '900 7px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('+ BUILD PLOT', plot.x, plot.y + 3);
+    });
   }
 
-  _drawCentralCoreIsland(ctx, nearestHotspot) {
-    const isl = this.islands['core'];
-    const isNear = nearestHotspot && nearestHotspot.id === 'core';
-    const bob = Math.sin(this.time * 2) * 2;
-    const cx = isl.x;
-    const cy = isl.y + bob;
-    const treasury = this.society ? this.society.treasuryBalance : 115;
-
-    this._drawCliffRoot(ctx, cx, cy, 98, 49);
-    this._drawIsoPlatform(ctx, cx, cy, 98, 49, 26, {
-      top: '#1e1b4b',
-      left: '#17153b',
-      right: '#0f0e26',
-      topStroke: isNear ? '#fde047' : '#22d3ee',
-      topStrokeWidth: isNear ? 3.2 : 2
-    });
-
-    // Glowing GCOIN Core Obelisk
-    this._drawIsoPlatform(ctx, cx, cy - 12, 46, 23, 24, {
-      top: '#0ea5e9',
-      left: '#0284c7',
-      right: '#0369a1',
-      topStroke: '#fef08a'
-    });
-
-    ctx.fillStyle = '#0f172a';
-    ctx.strokeStyle = isNear ? '#fde047' : '#22d3ee';
-    ctx.lineWidth = 2;
-    ctx.fillRect(cx - 58, cy - 54, 116, 22);
-    ctx.strokeRect(cx - 58, cy - 54, 116, 22);
-    ctx.fillStyle = '#fde047';
-    ctx.font = '900 9.5px "Courier New", monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(`🏦 TREASURY: ${treasury}G`, cx, cy - 40);
-  }
-
-  _drawFloatingIsland(ctx, islandId, nearestHotspot) {
-    const isl = this.islands[islandId];
-    if (!isl) return;
-    const lv = (this.society && this.society.districtLevels && this.society.districtLevels[islandId]) || 2;
-    const isNear = nearestHotspot && nearestHotspot.id === islandId;
-    const phase = islandId.charCodeAt(0) * 0.4;
-    const bob = Math.sin(this.time * 1.8 + phase) * 2.5;
-    const cx = isl.x;
-    const cy = isl.y + bob;
-
-    const halfW = 114;
-    const halfD = 57;
-
-    this._drawCliffRoot(ctx, cx, cy, halfW, halfD);
-
-    const turf = {
-      'farmstead': { top: '#4ade80', left: '#22c55e', right: '#15803d' },
-      'workshop': { top: '#334155', left: '#1e293b', right: '#0f172a' },
-      'lineage-hall': { top: '#d97706', left: '#b45309', right: '#78350f' },
-      'market-exchange': { top: '#34d399', left: '#10b981', right: '#047857' },
-      'charter-court': { top: '#4ade80', left: '#22c55e', right: '#15803d' },
-      'town-hall': { top: '#22c55e', left: '#16a34a', right: '#15803d' }
-    }[islandId];
-
-    this._drawIsoPlatform(ctx, cx, cy, halfW, halfD, 28, {
-      top: turf.top,
-      left: turf.left,
-      right: turf.right,
-      topStroke: isNear ? '#fde047' : '#0f172a',
-      topStrokeWidth: isNear ? 3.5 : 2
-    });
-
-    // Island-specific 3D Pixel Buildings, Crops & Props
-    if (islandId === 'farmstead') {
-      this._drawPixelWaterfall(ctx, cx + 34, cy + 20, 44);
-      if (this._isReady('pixelCastle')) {
-        ctx.drawImage(this.sprites.pixelCastle, cx - 44, cy - 76, 84, 84);
-      }
-      // Interactive Golden Wheat Plots swaying in the breeze
+  _drawMainlandLandmarks(ctx, nearestHotspot) {
+    // 1. Farmstead Golden Wheat Field & Granary Keep (-320, -165)
+    {
+      const lm = this.landmarks['farmstead'];
+      const cx = lm.x;
+      const cy = lm.y;
+      // Tilled soil patch
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(cx - 78, cy - 22, 156, 62);
       const sway = Math.round(Math.sin(this.time * 4) * 2);
-      for (let gx = -56; gx <= -16; gx += 14) {
-        for (let gy = -4; gy <= 18; gy += 11) {
-          ctx.fillStyle = '#78350f';
-          ctx.fillRect(cx + gx - 4, cy + gy, 10, 5);
+      for (let wx = -68; wx <= 64; wx += 16) {
+        for (let wy = -14; wy <= 28; wy += 14) {
           ctx.fillStyle = '#fde047';
-          ctx.fillRect(cx + gx - 2 + sway, cy + gy - 8, 6, 9);
+          ctx.fillRect(cx + wx + sway, cy + wy - 6, 7, 10);
+          ctx.fillStyle = '#ca8a04';
+          ctx.fillRect(cx + wx, cy + wy + 2, 7, 4);
         }
       }
-      if (this._isReady('pixelTree')) {
-        ctx.drawImage(this.sprites.pixelTree, cx + 36, cy - 44, 42, 42);
+      if (this._isReady('pixelCastle')) {
+        ctx.drawImage(this.sprites.pixelCastle, cx - 44, cy - 92, 88, 88);
       }
-    } else if (islandId === 'workshop') {
-      if (this._isReady('pixelWorkstation')) {
-        ctx.drawImage(this.sprites.pixelWorkstation, cx - 64, cy - 66, 68, 68);
-        ctx.drawImage(this.sprites.pixelWorkstation, cx + 4, cy - 66, 68, 68);
-      }
-      // Glowing Blueprint Holo-Pad
-      ctx.fillStyle = '#0ea5e9';
-      ctx.fillRect(cx - 24, cy + 6, 48, 12);
-      ctx.strokeStyle = '#fef08a';
-      ctx.strokeRect(cx - 24, cy + 6, 48, 12);
-    } else if (islandId === 'lineage-hall') {
-      // Glowing 10k-Token Ascension Altar
-      this._drawIsoPlatform(ctx, cx, cy - 8, 42, 21, 10, {
-        top: '#a855f7',
-        left: '#7e22ce',
-        right: '#581c87',
-        topStroke: '#fde047'
-      });
-      if (this._isReady('ancestorSvg')) {
-        ctx.drawImage(this.sprites.ancestorSvg, cx - 44, cy - 52, 34, 42);
-        ctx.drawImage(this.sprites.ancestorSvg, cx + 12, cy - 52, 34, 42);
-      }
-    } else if (islandId === 'market-exchange') {
-      this._drawPixelWaterfall(ctx, cx - 36, cy + 20, 42);
-      if (this._isReady('pixelBridge')) {
-        ctx.drawImage(this.sprites.pixelBridge, cx - 48, cy - 64, 96, 96);
-      }
-    } else if (islandId === 'charter-court') {
-      if (this._isReady('pixelMonolith')) {
-        ctx.drawImage(this.sprites.pixelMonolith, cx - 42, cy - 76, 84, 84);
-      }
-      if (this._isReady('pixelTree')) {
-        ctx.drawImage(this.sprites.pixelTree, cx + 36, cy - 42, 42, 42);
-      }
-    } else if (islandId === 'town-hall') {
-      // Tripo3D-style Pixel Tennis / Civic Court with white lines, net & bouncing ball!
-      if (this._isReady('pixelClubhouse')) {
-        ctx.drawImage(this.sprites.pixelClubhouse, cx - 72, cy - 74, 88, 88);
-      }
-      // Crisp white pixel court boundary & net on the right half of the island
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(cx - 38, cy - 12, 76, 30);
-      // Center net
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-      ctx.fillRect(cx - 1, cy - 18, 3, 34);
+      this._drawZoneSign(ctx, cx, cy + 48, '🌾 WHEAT FARMLAND', lm.color, nearestHotspot && nearestHotspot.id === 'farmstead');
     }
 
-    // Floating Island Signpost Banner
-    ctx.fillStyle = isNear ? '#fde047' : '#0f172a';
-    ctx.strokeStyle = isNear ? '#0f172a' : isl.color;
+    // 2. Engineer Tech Rig (285, -165)
+    {
+      const lm = this.landmarks['workshop'];
+      const cx = lm.x;
+      const cy = lm.y;
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(cx - 64, cy - 24, 128, 52);
+      if (this._isReady('pixelWorkstation')) {
+        ctx.drawImage(this.sprites.pixelWorkstation, cx - 58, cy - 64, 64, 64);
+        ctx.drawImage(this.sprites.pixelWorkstation, cx + 2, cy - 64, 64, 64);
+      }
+      this._drawZoneSign(ctx, cx, cy + 38, '⚙️ ENGINEER RIG', lm.color, nearestHotspot && nearestHotspot.id === 'workshop');
+    }
+
+    // 3. Lineage Ascension Shrine (-385, 25)
+    {
+      const lm = this.landmarks['lineage-hall'];
+      const cx = lm.x;
+      const cy = lm.y;
+      ctx.fillStyle = '#581c87';
+      ctx.fillRect(cx - 52, cy - 22, 104, 48);
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(cx - 52, cy - 22, 104, 48);
+      if (this._isReady('ancestorSvg')) {
+        ctx.drawImage(this.sprites.ancestorSvg, cx - 40, cy - 52, 34, 42);
+        ctx.drawImage(this.sprites.ancestorSvg, cx + 8, cy - 52, 34, 42);
+      }
+      this._drawZoneSign(ctx, cx, cy + 36, '🧬 LINEAGE SHRINE', lm.color, nearestHotspot && nearestHotspot.id === 'lineage-hall');
+    }
+
+    // 4. River Market Bridge (365, 20)
+    {
+      const lm = this.landmarks['market-exchange'];
+      const cx = lm.x;
+      const cy = lm.y;
+      if (this._isReady('pixelBridge')) {
+        ctx.drawImage(this.sprites.pixelBridge, cx - 48, cy - 58, 96, 96);
+      }
+      this._drawZoneSign(ctx, cx, cy + 40, '🛒 MARKET BRIDGE', lm.color, nearestHotspot && nearestHotspot.id === 'market-exchange');
+    }
+
+    // 5. Archon Charter Monolith (-245, 190)
+    {
+      const lm = this.landmarks['charter-court'];
+      const cx = lm.x;
+      const cy = lm.y;
+      if (this._isReady('pixelMonolith')) {
+        ctx.drawImage(this.sprites.pixelMonolith, cx - 44, cy - 72, 88, 88);
+      }
+      this._drawZoneSign(ctx, cx, cy + 28, '👑 CHARTER MONOLITH', lm.color, nearestHotspot && nearestHotspot.id === 'charter-court');
+    }
+
+    // 6. Central Town Plaza & Treasury Core (0, 5)
+    {
+      const lm = this.landmarks['core'];
+      const cx = lm.x;
+      const cy = lm.y;
+      const treasury = this.society ? this.society.treasuryBalance : 115;
+      ctx.fillStyle = '#1e1b4b';
+      ctx.fillRect(cx - 58, cy - 28, 116, 56);
+      ctx.strokeStyle = '#22d3ee';
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(cx - 58, cy - 28, 116, 56);
+      ctx.fillStyle = '#0ea5e9';
+      ctx.fillRect(cx - 26, cy - 16, 52, 32);
+      this._drawZoneSign(ctx, cx, cy + 38, `🏦 TREASURY: ${treasury}G`, lm.color, nearestHotspot && nearestHotspot.id === 'core');
+    }
+  }
+
+  _drawZoneSign(ctx, x, y, text, borderCol, isNear) {
+    const w = Math.max(118, text.length * 6.5 + 14);
+    ctx.fillStyle = isNear ? '#fde047' : 'rgba(15, 23, 42, 0.9)';
+    ctx.strokeStyle = isNear ? '#0f172a' : borderCol;
     ctx.lineWidth = 2;
-    ctx.fillRect(cx - 64, cy + 32, 128, 18);
-    ctx.strokeRect(cx - 64, cy + 32, 128, 18);
+    ctx.fillRect(x - w / 2, y - 10, w, 18);
+    ctx.strokeRect(x - w / 2, y - 10, w, 18);
     ctx.fillStyle = isNear ? '#0f172a' : '#ffffff';
-    ctx.font = '900 8.5px "Courier New", monospace';
+    ctx.font = '900 8px "Courier New", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(`${isl.title} LV.${lv}`, cx, cy + 44);
+    ctx.fillText(text, x, y + 2);
   }
 
   _getArchonId() {
@@ -977,110 +897,45 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
     return sorted[0].id;
   }
 
-  _drawAgentsAndParticles(ctx) {
+  _drawSortedEntitiesAndBuildings(ctx, nearestHotspot) {
     if (!this.society) return;
     const archonId = this._getArchonId();
 
-    // Sort agents by Y for proper 2.5D depth occlusion
-    const list = this.society.lineages
-      .map((lin) => ({ lin, ent: this.entities[lin.id] }))
-      .filter((x) => x.ent)
-      .sort((a, b) => a.ent.y - b.ent.y);
+    const renderables = [];
 
-    list.forEach(({ lin, ent }) => {
-      const isPlayer = lin.id === this.playerAgentId;
-      const isArchon = lin.id === archonId;
-      const isMoving = Math.hypot(ent.vx, ent.vy) > 8;
-      const walkBounce = isMoving ? Math.abs(Math.sin(this.time * 15)) * 5 : Math.round(Math.sin(this.time * 3 + ent.x) * 1.5);
-      const swingTilt = ent.actionAnim > 0 ? Math.sin(ent.actionAnim * 28) * 6 : 0;
+    // 1. Forest Trees
+    this.trees.forEach((t) => {
+      renderables.push({ kind: 'tree', y: t.y, data: t });
+    });
 
-      const ax = Math.round(ent.x + swingTilt);
-      const ay = Math.round(ent.y - walkBounce);
+    // 2. Player & AI Built Structures (House, Factory, Shop, Paddlefield)
+    this.placedBuildings.forEach((b) => {
+      renderables.push({ kind: 'building', y: b.y, data: b });
+    });
 
-      // Ground ring under the player-controlled agent
-      if (isPlayer) {
-        ctx.save();
-        ctx.strokeStyle = '#fde047';
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.ellipse(ent.x, ent.y + 2, 16, 8, 0, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-      } else {
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
-        ctx.fillRect(ent.x - 10, ent.y - 2, 20, 5);
-      }
-
-      const spriteKey = isArchon
-        ? 'pixelArchon'
-        : lin.role === 'farmer'
-          ? 'pixelFarmer'
-          : lin.role === 'engineer'
-            ? 'pixelEngineer'
-            : 'pixelManager';
-
-      if (this._isReady(spriteKey)) {
-        ctx.save();
-        ctx.translate(ax, ay);
-        if (ent.facing < 0) ctx.scale(-1, 1);
-        ctx.drawImage(this.sprites[spriteKey], -22, -40, 44, 44);
-        ctx.restore();
-      }
-
-      // Compact Pixel Nameplate & Stamina Bar above character
-      const tagY = ay - 52;
-      ctx.fillStyle = isPlayer ? '#fde047' : 'rgba(15, 23, 42, 0.88)';
-      ctx.strokeStyle = isPlayer ? '#0f172a' : '#38bdf8';
-      ctx.lineWidth = 1.5;
-      ctx.fillRect(ax - 32, tagY, 64, 15);
-      ctx.strokeRect(ax - 32, tagY, 64, 15);
-
-      ctx.fillStyle = isPlayer ? '#0f172a' : '#ffffff';
-      ctx.font = '900 7.5px "Courier New", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(`${isArchon ? '👑' : ''}${lin.id} G${lin.currentGen}`, ax, tagY + 9);
-
-      // Tiny stamina bar inside nameplate
-      const stam = lin.stamina ?? 85;
-      ctx.fillStyle = '#020617';
-      ctx.fillRect(ax - 28, tagY + 11, 56, 2.5);
-      ctx.fillStyle = stam > 55 ? '#22c55e' : stam > 30 ? '#fbbf24' : '#ef4444';
-      ctx.fillRect(ax - 28, tagY + 11, Math.round((56 * stam) / 100), 2.5);
-
-      // Floating "▼ YOU" arrow on the controlled agent
-      if (isPlayer) {
-        const arrowBounce = Math.round(Math.sin(this.time * 8) * 3);
-        ctx.fillStyle = '#fde047';
-        ctx.font = '900 9px "Courier New", monospace';
-        ctx.fillText('▼ YOU', ax, tagY - 5 + arrowBounce);
-      }
-
-      // Speech bubble if speaking
-      if (ent.speech && ent.speechTimer > 0) {
-        const sw = Math.max(84, ent.speech.length * 5.8 + 14);
-        const sy = tagY - 24;
-        ctx.fillStyle = '#ffffff';
-        ctx.strokeStyle = '#0f172a';
-        ctx.lineWidth = 2;
-        ctx.fillRect(ax - sw / 2, sy, sw, 18);
-        ctx.strokeRect(ax - sw / 2, sy, sw, 18);
-        ctx.fillStyle = '#0f172a';
-        ctx.font = '900 8px "Courier New", monospace';
-        ctx.fillText(ent.speech, ax, sy + 12);
+    // 3. Living Role Agents
+    this.society.lineages.forEach((lin) => {
+      const ent = this.entities[lin.id];
+      if (ent) {
+        renderables.push({ kind: 'agent', y: ent.y, lin, ent });
       }
     });
 
-    // Draw the bouncing Pixel Tennis Ball on the Town Hall Court
-    const b = this.courtBall;
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.fillRect(b.x - 3, b.y - 1, 6, 3);
-    ctx.fillStyle = '#bef264';
-    ctx.fillRect(b.x - 4, b.y - b.z - 4, 8, 8);
-    ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(b.x - 4, b.y - b.z - 4, 8, 8);
+    renderables.sort((a, b) => a.y - b.y);
 
-    // Draw physical 3D bouncing collectible particles
+    renderables.forEach((item) => {
+      if (item.kind === 'tree') {
+        if (this._isReady('pixelTree')) {
+          ctx.drawImage(this.sprites.pixelTree, item.data.x - 24, item.data.y - 42, 48, 48);
+        }
+      } else if (item.kind === 'building') {
+        this._drawPlacedBuilding(ctx, item.data, nearestHotspot);
+      } else if (item.kind === 'agent') {
+        this._drawAgentWithTool(ctx, item.lin, item.ent, archonId);
+      }
+    });
+
+    // 4. Physical 3D Bouncing Particles
     this.particles.forEach((p) => {
       ctx.fillStyle = 'rgba(0,0,0,0.3)';
       ctx.fillRect(p.x - 2, p.y, p.size, 2);
@@ -1090,6 +945,168 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       ctx.lineWidth = 1;
       ctx.strokeRect(p.x - p.size / 2, p.y - p.z - p.size / 2, p.size, p.size);
     });
+  }
+
+  _drawPlacedBuilding(ctx, b, nearestHotspot) {
+    const isNear = nearestHotspot && nearestHotspot.id === b.id;
+    const spriteMap = {
+      house: 'pixelHouse',
+      factory: 'pixelFactory',
+      shop: 'pixelShop',
+      paddlefield: 'pixelPaddlefield'
+    };
+    const key = spriteMap[b.type];
+    const size = b.type === 'paddlefield' ? 108 : 88;
+
+    if (this._isReady(key)) {
+      ctx.drawImage(this.sprites[key], b.x - size / 2, b.y - size * 0.72, size, size);
+    }
+
+    // Animated details per building type:
+    if (b.type === 'factory') {
+      // Rising smoke puffs from factory smokestacks
+      const puffY = (this.time * 18 + b.ballPhase * 10) % 24;
+      ctx.fillStyle = 'rgba(241, 245, 249, 0.75)';
+      ctx.fillRect(b.x - 14, b.y - 62 - puffY, 8, 6);
+      ctx.fillRect(b.x + 2, b.y - 66 - puffY * 0.8, 9, 6);
+    } else if (b.type === 'paddlefield') {
+      // Live bouncing pixel tennis/padel ball rallying back and forth on every built Paddlefield!
+      const t = this.time * 3.4 + (b.ballPhase || 0);
+      const bx = b.x + Math.sin(t) * 28;
+      const by = b.y - 6 + Math.cos(t) * 8;
+      const bz = Math.abs(Math.cos(t * 2)) * 18;
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillRect(bx - 3, by, 6, 3);
+      ctx.fillStyle = '#bef264';
+      ctx.fillRect(bx - 4, by - bz - 4, 7, 7);
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(bx - 4, by - bz - 4, 7, 7);
+    }
+
+    // Building nameplate badge
+    const tagColors = {
+      house: '#4ade80',
+      factory: '#38bdf8',
+      shop: '#fbbf24',
+      paddlefield: '#34d399'
+    };
+    const icons = {
+      house: '🏠',
+      factory: '🏭',
+      shop: '🏪',
+      paddlefield: '🎾'
+    };
+    this._drawZoneSign(
+      ctx,
+      b.x,
+      b.y + 24,
+      `${icons[b.type]} ${b.type.toUpperCase()} LV.${b.lv}`,
+      tagColors[b.type] || '#fde047',
+      isNear
+    );
+  }
+
+  _drawAgentWithTool(ctx, lin, ent, archonId) {
+    const isPlayer = lin.id === this.playerAgentId;
+    const isArchon = lin.id === archonId;
+    const isMoving = Math.hypot(ent.vx, ent.vy) > 8;
+    const walkBounce = isMoving
+      ? Math.abs(Math.sin(this.time * 15)) * 5
+      : Math.round(Math.sin(this.time * 3 + ent.x) * 1.5);
+
+    const ax = Math.round(ent.x);
+    const ay = Math.round(ent.y - walkBounce);
+
+    // Highlight ring under controlled character
+    if (isPlayer) {
+      ctx.save();
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.ellipse(ent.x, ent.y + 2, 16, 8, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    } else {
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
+      ctx.fillRect(ent.x - 10, ent.y - 2, 20, 5);
+    }
+
+    const spriteKey = isArchon
+      ? 'pixelArchon'
+      : lin.role === 'farmer'
+        ? 'pixelFarmer'
+        : lin.role === 'engineer'
+          ? 'pixelEngineer'
+          : 'pixelManager';
+
+    if (this._isReady(spriteKey)) {
+      ctx.save();
+      ctx.translate(ax, ay);
+      if (ent.facing < 0) ctx.scale(-1, 1);
+      ctx.drawImage(this.sprites[spriteKey], -22, -40, 44, 44);
+
+      // Draw Equipped Role Work Tool in character's hand with swing animation!
+      const toolKey = ent.overrideTool
+        ? ent.overrideTool
+        : lin.role === 'farmer'
+          ? 'toolScythe'
+          : lin.role === 'engineer'
+            ? 'toolWrench'
+            : 'toolRacket';
+
+      if (this._isReady(toolKey)) {
+        const swingAngle = ent.actionAnim > 0
+          ? Math.sin(ent.actionAnim * 28) * 1.1
+          : Math.sin(this.time * 3.5) * 0.12;
+        ctx.save();
+        ctx.translate(12, -18);
+        ctx.rotate(swingAngle);
+        ctx.drawImage(this.sprites[toolKey], -12, -16, 26, 26);
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    // Nameplate + Stamina + Tool Level above character
+    const tagY = ay - 54;
+    const toolLv = lin.toolLevel || 1;
+    ctx.fillStyle = isPlayer ? '#fde047' : 'rgba(15, 23, 42, 0.88)';
+    ctx.strokeStyle = isPlayer ? '#0f172a' : '#38bdf8';
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(ax - 36, tagY, 72, 15);
+    ctx.strokeRect(ax - 36, tagY, 72, 15);
+
+    ctx.fillStyle = isPlayer ? '#0f172a' : '#ffffff';
+    ctx.font = '900 7.2px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${isArchon ? '👑' : ''}${lin.id} 🛠️${toolLv}`, ax, tagY + 9);
+
+    const stam = lin.stamina ?? 85;
+    ctx.fillStyle = '#020617';
+    ctx.fillRect(ax - 32, tagY + 11, 64, 2.5);
+    ctx.fillStyle = stam > 55 ? '#22c55e' : stam > 30 ? '#fbbf24' : '#ef4444';
+    ctx.fillRect(ax - 32, tagY + 11, Math.round((64 * stam) / 100), 2.5);
+
+    if (isPlayer) {
+      const arrowBounce = Math.round(Math.sin(this.time * 8) * 3);
+      ctx.fillStyle = '#fde047';
+      ctx.font = '900 9px "Courier New", monospace';
+      ctx.fillText('▼ YOU', ax, tagY - 5 + arrowBounce);
+    }
+
+    if (ent.speech && ent.speechTimer > 0) {
+      const sw = Math.max(84, ent.speech.length * 5.8 + 14);
+      const sy = tagY - 24;
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 2;
+      ctx.fillRect(ax - sw / 2, sy, sw, 18);
+      ctx.strokeRect(ax - sw / 2, sy, sw, 18);
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '900 8px "Courier New", monospace';
+      ctx.fillText(ent.speech, ax, sy + 12);
+    }
   }
 
   _drawBeamsAndPopups(ctx) {
@@ -1114,7 +1131,7 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       const alpha = Math.max(0, 1 - (age / p.duration) ** 1.5);
       const fy = Math.round(p.y - 45 - age * 26);
       const fx = Math.round(p.x);
-      const w = Math.max(110, p.text.length * 6.4 + 16);
+      const w = Math.max(115, p.text.length * 6.4 + 16);
 
       ctx.save();
       ctx.globalAlpha = alpha;
@@ -1130,9 +1147,20 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       ctx.restore();
     });
   }
+
+  _drawRain(ctx) {
+    if (this.weatherMode !== 'rain') return;
+    ctx.fillStyle = '#7dd3fc';
+    this.rainDrops.forEach((d) => {
+      const rx = ((d.x - this.time * 85 + 700) % 1400) - 700;
+      const ry = ((d.y + this.time * d.speed + 430) % 860) - 430;
+      ctx.fillRect(rx, ry, 2, 4);
+      ctx.fillRect(rx - 2, ry + 4, 2, 4);
+    });
+  }
 };
 
 function socAgentPower(lin) {
   if (!lin) return 0;
-  return lin.wallet + lin.completedSales * 2 + (lin.currentGen - 1) * 2;
+  return lin.wallet + lin.completedSales * 2 + (lin.currentGen - 1) * 2 + ((lin.buildingsOwned || 0) * 5);
 }
