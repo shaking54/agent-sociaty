@@ -1,0 +1,19 @@
+{
+  "name": "agent-society-simulator-25d",
+  "version": "1.0.0",
+  "description": "2.5D Isometric Voxel Simulator Game UI/UX for Agent Society (SHA-86 / SHA-85)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "agent-society",
+    "gcoin",
+    "simulator",
+    "isometric",
+    "2.5d",
+    "sha-86"
+  ],
+  "license": "MIT"
+}

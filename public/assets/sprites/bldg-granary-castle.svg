@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 190" width="220" height="190">
+    <path d="M 54 78 L 110 106 L 110 154 L 54 126 Z" fill="#94a3b8" stroke="#0f172a" stroke-width="2.2" stroke-linejoin="round" />
+    <path d="M 110 106 L 166 78 L 166 126 L 110 154 Z" fill="#64748b" stroke="#0f172a" stroke-width="2.2" stroke-linejoin="round" />
+    <path d="M 110 50 L 166 78 L 110 106 L 54 78 Z" fill="#cbd5e1" stroke="#0f172a" stroke-width="2.2" stroke-linejoin="round" />
+  <path d="M 122 118 L 142 108 L 142 132 L 122 142 Z" fill="#78350f" stroke="#0f172a" stroke-width="2" />
+    <path d="M 92 42 L 110 51 L 110 97 L 92 88 Z" fill="#94a3b8" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" />
+    <path d="M 110 51 L 128 42 L 128 88 L 110 97 Z" fill="#475569" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" />
+    <path d="M 110 33 L 128 42 L 110 51 L 92 42 Z" fill="#e2e8f0" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" />
+  
+    <path d="M 90 32 L 110 42 L 110 52 L 90 42 Z" fill="#ef4444" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round" />
+    <path d="M 110 42 L 130 32 L 130 42 L 110 52 Z" fill="#b91c1c" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round" />
+    <path d="M 110 22 L 130 32 L 110 42 L 90 32 Z" fill="#f87171" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round" />
+  
+    <path d="M 98 25 L 110 31 L 110 38 L 98 32 Z" fill="#f87171" stroke="#0f172a" stroke-width="1.6" stroke-linejoin="round" />
+    <path d="M 110 31 L 122 25 L 122 32 L 110 38 Z" fill="#dc2626" stroke="#0f172a" stroke-width="1.6" stroke-linejoin="round" />
+    <path d="M 110 19 L 122 25 L 110 31 L 98 25 Z" fill="#fca5a5" stroke="#0f172a" stroke-width="1.6" stroke-linejoin="round" />
+  <line x1="110" y1="22" x2="110" y2="8" stroke="#0f172a" stroke-width="2" /><polygon points="110,8 121,12 110,17" fill="#ef4444" stroke="#0f172a" stroke-width="1.2" />
+    <path d="M 44 68 L 62 77 L 62 123 L 44 114 Z" fill="#94a3b8" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" />
+    <path d="M 62 77 L 80 68 L 80 114 L 62 123 Z" fill="#475569" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" />
+    <path d="M 62 59 L 80 68 L 62 77 L 44 68 Z" fill="#e2e8f0" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" />
+  
+    <path d="M 42 58 L 62 68 L 62 78 L 42 68 Z" fill="#ef4444" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round" />
+    <path d="M 62 68 L 82 58 L 82 68 L 62 78 Z" fill="#b91c1c" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round" />
+    <path d="M 62 48 L 82 58 L 62 68 L 42 58 Z" fill="#f87171" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round" />
+  
+    <path d="M 50 51 L 62 57 L 62 64 L 50 58 Z" fill="#f87171" stroke="#0f172a" stroke-width="1.6" stroke-linejoin="round" />
+    <path d="M 62 57 L 74 51 L 74 58 L 62 64 Z" fill="#dc2626" stroke="#0f172a" stroke-width="1.6" stroke-linejoin="round" />
+    <path d="M 62 45 L 74 51 L 62 57 L 50 51 Z" fill="#fca5a5" stroke="#0f172a" stroke-width="1.6" stroke-linejoin="round" />
+  <line x1="62" y1="48" x2="62" y2="34" stroke="#0f172a" stroke-width="2" /><polygon points="62,34 73,38 62,43" fill="#ef4444" stroke="#0f172a" stroke-width="1.2" />
+    <path d="M 140 68 L 158 77 L 158 123 L 140 114 Z" fill="#94a3b8" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" />
+    <path d="M 158 77 L 176 68 L 176 114 L 158 123 Z" fill="#475569" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" />
+    <path d="M 158 59 L 176 68 L 158 77 L 140 68 Z" fill="#e2e8f0" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" />
+  
+    <path d="M 138 58 L 158 68 L 158 78 L 138 68 Z" fill="#ef4444" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round" />
+    <path d="M 158 68 L 178 58 L 178 68 L 158 78 Z" fill="#b91c1c" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round" />
+    <path d="M 158 48 L 178 58 L 158 68 L 138 58 Z" fill="#f87171" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round" />
+  
+    <path d="M 146 51 L 158 57 L 158 64 L 146 58 Z" fill="#f87171" stroke="#0f172a" stroke-width="1.6" stroke-linejoin="round" />
+    <path d="M 158 57 L 170 51 L 170 58 L 158 64 Z" fill="#dc2626" stroke="#0f172a" stroke-width="1.6" stroke-linejoin="round" />
+    <path d="M 158 45 L 170 51 L 158 57 L 146 51 Z" fill="#fca5a5" stroke="#0f172a" stroke-width="1.6" stroke-linejoin="round" />
+  <line x1="158" y1="48" x2="158" y2="34" stroke="#0f172a" stroke-width="2" /><polygon points="158,34 169,38 158,43" fill="#ef4444" stroke="#0f172a" stroke-width="1.2" />
+    <path d="M 92 96 L 110 105 L 110 151 L 92 142 Z" fill="#94a3b8" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" />
+    <path d="M 110 105 L 128 96 L 128 142 L 110 151 Z" fill="#475569" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" />
+    <path d="M 110 87 L 128 96 L 110 105 L 92 96 Z" fill="#e2e8f0" stroke="#0f172a" stroke-width="2" stroke-linejoin="round" />
+  
+    <path d="M 90 86 L 110 96 L 110 106 L 90 96 Z" fill="#ef4444" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round" />
+    <path d="M 110 96 L 130 86 L 130 96 L 110 106 Z" fill="#b91c1c" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round" />
+    <path d="M 110 76 L 130 86 L 110 96 L 90 86 Z" fill="#f87171" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round" />
+  
+    <path d="M 98 79 L 110 85 L 110 92 L 98 86 Z" fill="#f87171" stroke="#0f172a" stroke-width="1.6" stroke-linejoin="round" />
+    <path d="M 110 85 L 122 79 L 122 86 L 110 92 Z" fill="#dc2626" stroke="#0f172a" stroke-width="1.6" stroke-linejoin="round" />
+    <path d="M 110 73 L 122 79 L 110 85 L 98 79 Z" fill="#fca5a5" stroke="#0f172a" stroke-width="1.6" stroke-linejoin="round" />
+  <line x1="110" y1="76" x2="110" y2="62" stroke="#0f172a" stroke-width="2" /><polygon points="110,62 121,66 110,71" fill="#ef4444" stroke="#0f172a" stroke-width="1.2" /></svg>
