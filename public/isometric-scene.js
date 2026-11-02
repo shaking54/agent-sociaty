@@ -1,8 +1,7 @@
-// AGENT SOCIETY — PIXEL-ART 3D MAINLAND BUILDER & DYNASTY GAME ENGINE
-// Continuous 2.5D Pixel-Art Mainland with:
-// - Buildable Houses (pixel-house.png), Factories (pixel-factory.png), Shops (pixel-shop.png), and Paddlefields (pixel-paddlefield.png)
-// - Visible Equipped Role Work Tools (Scythe, Power Wrench, Paddle Racket, Builder Hammer) with swing animations
-// - Direct WASD / Arrow / Click-to-Move player control + 9 autonomous AI agents
+// AGENT SOCIETY — TRUE 2.5D ISOMETRIC VOXEL MAINLAND BUILDER & DYNASTY GAME ENGINE
+// The Mainland is a multi-tiered 2.5D Isometric Diamond Continent (2:1 isometric projection)
+// with 3D extruded cliff walls, isometric checkerboard grass tiles, elevated highland plateaus,
+// isometric cobblestone avenues, a recessed isometric river channel, and isometric diamond build pads.
 
 window.IsometricSocietyScene = class IsometricSocietyScene {
   constructor(canvas, callbacks = {}) {
@@ -15,8 +14,8 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
 
     this.camera = {
       x: 0,
-      y: 12,
-      zoom: 1.05,
+      y: 16,
+      zoom: 1.0,
       followPlayer: true,
       isDragging: false,
       dragStartX: 0,
@@ -28,62 +27,61 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
     this.lastTs = performance.now();
     this.society = null;
     this.playerAgentId = 'farmer-1';
-    this.pixelScale = 1; // Default to Full Native Retina 1x Ultra-Sharp rendering!
+    this.pixelScale = 1; // Full Native Retina 1x Ultra-Sharp rendering
     this.weatherMode = 'sunny';
 
-    // Real-time agent entities on the mainland
+    // Real-time agent entities on the 2.5D mainland
     this.entities = {};
     this.particles = [];
     this.floatingPopups = [];
     this.beams = [];
 
-    // Built structures on the Mainland (both pre-existing & newly built by Player/AI)
-    // Types: 'house' | 'factory' | 'shop' | 'paddlefield'
+    // Built structures on the 2.5D Mainland (aligned to isometric diamond grid)
     this.placedBuildings = [
-      { id: 'b-house-1', type: 'house', name: 'Farmer Homestead', owner: 'farmer-1', x: -165, y: -185, lv: 1, ballPhase: 0 },
-      { id: 'b-factory-1', type: 'factory', name: 'Blueprint Foundry', owner: 'engineer-8', x: 135, y: -185, lv: 2, ballPhase: 1 },
-      { id: 'b-shop-1', type: 'shop', name: 'Central Ration Shop', owner: 'farmer-4', x: 155, y: 15, lv: 1, ballPhase: 2 },
-      { id: 'b-paddle-1', type: 'paddlefield', name: 'Club Paddlefield #1', owner: 'manager-3', x: 230, y: 185, lv: 2, ballPhase: 0 }
+      { id: 'b-house-1', type: 'house', name: 'Farmer Homestead', owner: 'farmer-1', x: -160, y: -80, lv: 1, ballPhase: 0 },
+      { id: 'b-factory-1', type: 'factory', name: 'Blueprint Foundry', owner: 'engineer-8', x: 160, y: -80, lv: 2, ballPhase: 1 },
+      { id: 'b-shop-1', type: 'shop', name: 'Central Ration Shop', owner: 'farmer-4', x: 160, y: 80, lv: 1, ballPhase: 2 },
+      { id: 'b-paddle-1', type: 'paddlefield', name: 'Club Paddlefield #1', owner: 'manager-3', x: -160, y: 80, lv: 2, ballPhase: 0 }
     ];
 
-    // Pre-marked buildable land plots (players can also build anywhere on the mainland!)
+    // Pre-marked 2.5D Isometric Diamond Build Plots on the mainland
     this.buildPlots = [
-      { x: -145, y: -45 },
-      { x: 145, y: -55 },
-      { x: -120, y: 95 },
-      { x: 95, y: 115 },
-      { x: -310, y: -50 },
-      { x: 310, y: -55 },
-      { x: -75, y: -175 },
-      { x: 65, y: 205 },
-      { x: -340, y: 130 },
-      { x: 355, y: 145 }
+      { x: -240, y: 0 },
+      { x: 240, y: 0 },
+      { x: 0, y: -120 },
+      { x: 0, y: 120 },
+      { x: -120, y: -140 },
+      { x: 120, y: -140 },
+      { x: -120, y: 140 },
+      { x: 120, y: 140 },
+      { x: -320, y: -40 },
+      { x: 320, y: 40 }
     ];
 
-    // Core Mainland Landmarks / Work Zones
+    // Core 2.5D Mainland Landmarks positioned on the Isometric Diamond Continent
     this.landmarks = {
       'farmstead': {
         id: 'farmstead',
-        x: -320,
-        y: -165,
-        title: 'GOLDEN WHEAT FARMLAND',
+        x: -260,
+        y: -130,
+        title: 'GOLDEN WHEAT TERRACE',
         color: '#4ade80',
         prompt: 'Swing Scythe to Harvest Wheat (+Wage GCOIN & +Rations)',
         actionType: 'harvest'
       },
       'workshop': {
         id: 'workshop',
-        x: 285,
-        y: -165,
-        title: 'ENGINEER TECH RIG',
+        x: 260,
+        y: -130,
+        title: 'ENGINEER FOUNDRY RIDGE',
         color: '#38bdf8',
         prompt: 'Use Wrench to Craft Blueprint (+Wage GCOIN & +Tech)',
         actionType: 'craft'
       },
       'lineage-hall': {
         id: 'lineage-hall',
-        x: -385,
-        y: 25,
+        x: -380,
+        y: 0,
         title: 'LINEAGE ASCENSION SHRINE',
         color: '#c084fc',
         prompt: 'Ascend to Gen +1 Heir (+10% Permanent Wage Mastery)',
@@ -91,8 +89,8 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       },
       'market-exchange': {
         id: 'market-exchange',
-        x: 365,
-        y: 20,
+        x: 360,
+        y: 0,
         title: 'RIVER MARKET BRIDGE',
         color: '#fbbf24',
         prompt: 'Trade Goods & Eat Ration (+45% Stamina & +Sales Power)',
@@ -100,8 +98,8 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       },
       'charter-court': {
         id: 'charter-court',
-        x: -245,
-        y: 190,
+        x: 0,
+        y: 210,
         title: 'ARCHON CHARTER MONOLITH',
         color: '#f472b6',
         prompt: 'Enact / Cycle Colony Charter Law (Archon Decree)',
@@ -110,7 +108,7 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       'core': {
         id: 'core',
         x: 0,
-        y: 5,
+        y: 0,
         title: 'TOWN PLAZA & TREASURY',
         color: '#22d3ee',
         prompt: 'Upgrade All Mainland Buildings (15 Treasury GCOIN)',
@@ -118,14 +116,12 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       }
     };
 
-    // Decorative forest trees around the mainland perimeter
+    // Decorative 3D Voxel Trees arranged along the isometric diamond coastline
     this.trees = [
-      { x: -495, y: -230 }, { x: -445, y: -255 }, { x: -215, y: -260 },
-      { x: -40, y: -265 }, { x: 65, y: -260 }, { x: 215, y: -260 },
-      { x: 430, y: -245 }, { x: 495, y: -195 }, { x: -510, y: -90 },
-      { x: -515, y: 110 }, { x: -460, y: 245 }, { x: -360, y: 265 },
-      { x: -135, y: 265 }, { x: 15, y: 270 }, { x: 385, y: 255 },
-      { x: 485, y: 215 }, { x: 515, y: 80 }
+      { x: -110, y: -210 }, { x: -40, y: -245 }, { x: 40, y: -245 }, { x: 110, y: -210 },
+      { x: -460, y: -55 }, { x: -495, y: 0 }, { x: -450, y: 65 },
+      { x: 450, y: -60 }, { x: 495, y: 0 }, { x: 455, y: 60 },
+      { x: -290, y: 145 }, { x: -210, y: 185 }, { x: 210, y: 185 }, { x: 290, y: 145 }
     ];
 
     this.rainDrops = Array.from({ length: 80 }, (_, i) => ({
@@ -143,7 +139,7 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
 
   _loadSprites() {
     this.sprites = {};
-    const v = '?v=sharp2';
+    const v = '?v=sharp3';
     const manifest = {
       pixelFarmer: './assets/sprites/pixel-farmer.png' + v,
       pixelEngineer: './assets/sprites/pixel-engineer.png' + v,
@@ -155,7 +151,6 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       pixelMonolith: './assets/sprites/pixel-monolith.png' + v,
       pixelClubhouse: './assets/sprites/pixel-clubhouse.png' + v,
       pixelTree: './assets/sprites/pixel-tree.png' + v,
-      // New Role Buildable Buildings & Work Tools
       pixelHouse: './assets/sprites/pixel-house.png' + v,
       pixelFactory: './assets/sprites/pixel-factory.png' + v,
       pixelShop: './assets/sprites/pixel-shop.png' + v,
@@ -186,6 +181,17 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
     this.canvas.width = this.width * dpr;
     this.canvas.height = this.height * dpr;
     this.dpr = dpr;
+  }
+
+  // Clamp any (x, y) point inside the 2.5D Isometric Diamond Continent (|x|/580 + |y|/290 <= 1)
+  _clampToIsoContinent(x, y) {
+    const maxW = 550;
+    const maxD = 275;
+    const norm = Math.abs(x) / maxW + Math.abs(y) / maxD;
+    if (norm > 1) {
+      return { x: (x / norm) * 0.98, y: (y / norm) * 0.98 };
+    }
+    return { x, y };
   }
 
   _bindEvents() {
@@ -238,11 +244,10 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
   _handleWorldClick(wx, wy) {
     if (!this.society) return;
 
-    // 1. Check if user clicked on another agent to switch control
     for (const lin of this.society.lineages) {
       const ent = this.entities[lin.id];
       if (!ent) continue;
-      if (Math.hypot(wx - ent.x, wy - (ent.y - 16)) < 24 && lin.id !== this.playerAgentId) {
+      if (Math.hypot(wx - ent.x, wy - (ent.y - 16)) < 26 && lin.id !== this.playerAgentId) {
         if (this.callbacks.onSelectAgent) {
           this.callbacks.onSelectAgent(lin.id);
         }
@@ -250,13 +255,13 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       }
     }
 
-    // 2. Otherwise walk the player character across the mainland to the clicked coordinate
     const playerEnt = this.entities[this.playerAgentId];
     if (playerEnt) {
-      playerEnt.targetX = Math.max(-520, Math.min(520, wx));
-      playerEnt.targetY = Math.max(-260, Math.min(260, wy));
+      const clamped = this._clampToIsoContinent(wx, wy);
+      playerEnt.targetX = clamped.x;
+      playerEnt.targetY = clamped.y;
       this.camera.followPlayer = true;
-      this.spawnBurst(wx, wy, '#fde047', 4);
+      this.spawnBurst(clamped.x, clamped.y, '#fde047', 4);
     }
   }
 
@@ -273,9 +278,9 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
   _syncEntities() {
     if (!this.society) return;
     const roleStarts = {
-      farmer: { x: -290, y: -140 },
-      engineer: { x: 250, y: -140 },
-      manager: { x: 210, y: 170 }
+      farmer: { x: -220, y: -105 },
+      engineer: { x: 220, y: -105 },
+      manager: { x: -130, y: 75 }
     };
 
     this.society.lineages.forEach((lin, idx) => {
@@ -285,8 +290,8 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
         const angle = (idx / this.society.lineages.length) * Math.PI * 2;
         this.entities[lin.id] = {
           id: lin.id,
-          x: base.x + Math.cos(angle) * 45,
-          y: base.y + Math.sin(angle) * 26,
+          x: base.x + Math.cos(angle) * 38,
+          y: base.y + Math.sin(angle) * 20,
           vx: 0,
           vy: 0,
           targetX: null,
@@ -306,17 +311,15 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
     return this.entities[this.playerAgentId];
   }
 
-  // Construct a new House, Factory, Shop, or Paddlefield on the Mainland!
   buildStructureOnLand(type, ownerId, customX = null, customY = null) {
     const ent = this.entities[ownerId] || this.getPlayerEntity();
     let bx = customX !== null ? customX : (ent ? ent.x : 0);
-    let by = customY !== null ? customY : (ent ? ent.y - 12 : 0);
+    let by = customY !== null ? customY : (ent ? ent.y - 10 : 0);
 
-    // Snap to nearest open buildPlot if within 65px, otherwise place beside character
     let snappedPlot = null;
     for (const plot of this.buildPlots) {
       const occupied = this.placedBuildings.some((b) => Math.hypot(b.x - plot.x, b.y - plot.y) < 52);
-      if (!occupied && Math.hypot(bx - plot.x, by - plot.y) < 75) {
+      if (!occupied && Math.hypot(bx - plot.x, by - plot.y) < 82) {
         snappedPlot = plot;
         break;
       }
@@ -325,17 +328,17 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       bx = snappedPlot.x;
       by = snappedPlot.y;
     } else {
-      // If standing on top of an existing building, nudge slightly so it doesn't overlap
       for (const b of this.placedBuildings) {
-        if (Math.hypot(bx - b.x, by - b.y) < 55) {
+        if (Math.hypot(bx - b.x, by - b.y) < 58) {
           bx += (Math.random() > 0.5 ? 64 : -64);
-          by += (Math.random() - 0.5) * 36;
+          by += (Math.random() - 0.5) * 32;
         }
       }
     }
 
-    bx = Math.max(-450, Math.min(450, Math.round(bx)));
-    by = Math.max(-220, Math.min(220, Math.round(by)));
+    const clamped = this._clampToIsoContinent(bx, by);
+    bx = Math.round(clamped.x);
+    by = Math.round(clamped.y);
 
     const labels = {
       house: 'Homestead House',
@@ -370,7 +373,6 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
     return newBldg;
   }
 
-  // Find the nearest interactive landmark or player-built structure within 82px
   getNearestHotspot() {
     const ent = this.getPlayerEntity();
     if (!ent) return null;
@@ -470,7 +472,7 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
   }
 
   cyclePixelMode() {
-    this.pixelScale = this.pixelScale === 2 ? 3 : this.pixelScale === 3 ? 1 : 2;
+    this.pixelScale = this.pixelScale === 1 ? 2 : this.pixelScale === 2 ? 3 : 1;
     return this.pixelScale;
   }
 
@@ -531,21 +533,24 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
         playerEnt.vy *= 0.75;
       }
 
-      playerEnt.x = Math.max(-520, Math.min(520, playerEnt.x + playerEnt.vx * dt));
-      playerEnt.y = Math.max(-250, Math.min(250, playerEnt.y + playerEnt.vy * dt));
+      const nextPos = this._clampToIsoContinent(
+        playerEnt.x + playerEnt.vx * dt,
+        playerEnt.y + playerEnt.vy * dt
+      );
+      playerEnt.x = nextPos.x;
+      playerEnt.y = nextPos.y;
       if (Math.abs(playerEnt.vx) > 5) {
         playerEnt.facing = playerEnt.vx > 0 ? 1 : -1;
       }
 
       if (this.camera.followPlayer) {
-        const desiredX = -playerEnt.x * this.camera.zoom * 0.35;
-        const desiredY = -playerEnt.y * this.camera.zoom * 0.35 + 10;
+        const desiredX = -playerEnt.x * this.camera.zoom * 0.32;
+        const desiredY = -playerEnt.y * this.camera.zoom * 0.32 + 14;
         this.camera.x += (desiredX - this.camera.x) * Math.min(1, dt * 5);
         this.camera.y += (desiredY - this.camera.y) * Math.min(1, dt * 5);
       }
     }
 
-    // Update Autonomous AI Agents roaming the mainland
     const allTargets = [...Object.values(this.landmarks), ...this.placedBuildings];
     this.society.lineages.forEach((lin) => {
       const ent = this.entities[lin.id];
@@ -564,8 +569,12 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
         } else if (lin.contextTokens > 8200) {
           dest = this.landmarks['lineage-hall'];
         }
-        ent.targetX = dest.x + (Math.random() - 0.5) * 70;
-        ent.targetY = dest.y + (Math.random() - 0.5) * 36 + 10;
+        const c = this._clampToIsoContinent(
+          dest.x + (Math.random() - 0.5) * 60,
+          dest.y + (Math.random() - 0.5) * 30 + 8
+        );
+        ent.targetX = c.x;
+        ent.targetY = c.y;
       }
 
       if (ent.targetX !== null && ent.targetY !== null) {
@@ -589,7 +598,6 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       }
     });
 
-    // Update 3D Bouncing Particles
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.age += dt;
@@ -673,10 +681,10 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
 
     const nearestHotspot = this.getNearestHotspot();
 
-    // 1. Continuous 2.5D Pixel-Art Mainland Continent (Beach, Turf, Roads, River & Build Plots)
-    this._drawContinuousMainland(ctx, nearestHotspot);
+    // 1. TRUE 2.5D ISOMETRIC DIAMOND VOXEL CONTINENT (Stepped 3D Slabs, Isometric Tile Grid, Isometric Roads & River)
+    this._drawIsoVoxelContinent(ctx, nearestHotspot);
 
-    // 2. Core Mainland Landmarks
+    // 2. Core Mainland Landmarks on 2.5D Terraces
     this._drawMainlandLandmarks(ctx, nearestHotspot);
 
     // 3. Y-Sorted Render of Trees, Built Structures (House, Factory, Shop, Paddlefield), Agents & Particles
@@ -689,14 +697,80 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
     ctx.restore();
   }
 
+  // Draw a 3D Extruded Isometric Diamond Slab (2:1 isometric projection with Top, Left, and Right 3D faces)
+  _drawIsoSlab(ctx, cx, cy, halfW, halfD, thickness, colors) {
+    const top = { x: cx, y: cy - halfD };
+    const right = { x: cx + halfW, y: cy };
+    const bottom = { x: cx, y: cy + halfD };
+    const left = { x: cx - halfW, y: cy };
+
+    if (colors.shadow) {
+      ctx.fillStyle = colors.shadow;
+      ctx.beginPath();
+      ctx.moveTo(top.x, top.y + thickness + 14);
+      ctx.lineTo(right.x + 18, right.y + thickness + 14);
+      ctx.lineTo(bottom.x, bottom.y + thickness + 22);
+      ctx.lineTo(left.x - 18, left.y + thickness + 14);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Left 3D extruded cliff face
+    if (thickness > 0) {
+      ctx.beginPath();
+      ctx.moveTo(left.x, left.y);
+      ctx.lineTo(bottom.x, bottom.y);
+      ctx.lineTo(bottom.x, bottom.y + thickness);
+      ctx.lineTo(left.x, left.y + thickness);
+      ctx.closePath();
+      ctx.fillStyle = colors.left;
+      ctx.fill();
+      if (colors.stroke) {
+        ctx.strokeStyle = colors.stroke;
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+      }
+
+      // Right 3D extruded cliff face
+      ctx.beginPath();
+      ctx.moveTo(bottom.x, bottom.y);
+      ctx.lineTo(right.x, right.y);
+      ctx.lineTo(right.x, right.y + thickness);
+      ctx.lineTo(bottom.x, bottom.y + thickness);
+      ctx.closePath();
+      ctx.fillStyle = colors.right;
+      ctx.fill();
+      if (colors.stroke) {
+        ctx.strokeStyle = colors.stroke;
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+      }
+    }
+
+    // Top Isometric Diamond Surface
+    ctx.beginPath();
+    ctx.moveTo(top.x, top.y);
+    ctx.lineTo(right.x, right.y);
+    ctx.lineTo(bottom.x, bottom.y);
+    ctx.lineTo(left.x, left.y);
+    ctx.closePath();
+    ctx.fillStyle = colors.top;
+    ctx.fill();
+    if (colors.topStroke) {
+      ctx.strokeStyle = colors.topStroke;
+      ctx.lineWidth = colors.topStrokeWidth || 2;
+      ctx.stroke();
+    }
+  }
+
   _drawOceanBackdrop(ctx) {
     const w = this.width;
     const h = this.height;
     const grad = ctx.createLinearGradient(0, 0, 0, h);
     if (this.weatherMode === 'sunny') {
-      grad.addColorStop(0, '#0284c7');
-      grad.addColorStop(0.5, '#0ea5e9');
-      grad.addColorStop(1, '#0369a1');
+      grad.addColorStop(0, '#0369a1');
+      grad.addColorStop(0.5, '#0284c7');
+      grad.addColorStop(1, '#0c4a6e');
     } else if (this.weatherMode === 'sunset') {
       grad.addColorStop(0, '#4c1d95');
       grad.addColorStop(0.5, '#be185d');
@@ -711,185 +785,280 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, h);
 
-    // Animated pixel ocean wave sparkles
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
-    for (let i = 0; i < 42; i++) {
-      const wx = ((i * 193 + Math.floor(this.time * 18)) % w);
+    // Isometric diamond wave crests on the ocean
+    ctx.strokeStyle = 'rgba(186, 230, 253, 0.25)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 36; i++) {
+      const wx = ((i * 193 + Math.floor(this.time * 16)) % w);
       const wy = ((i * 107) % h);
-      ctx.fillRect(wx, wy, 14, 3);
+      ctx.beginPath();
+      ctx.moveTo(wx - 10, wy);
+      ctx.lineTo(wx, wy - 5);
+      ctx.lineTo(wx + 10, wy);
+      ctx.stroke();
     }
   }
 
-  _drawContinuousMainland(ctx, nearestHotspot) {
-    // Outer sandy beach shore & cliff bevel
-    ctx.fillStyle = '#78350f';
-    ctx.fillRect(-580, -296, 1160, 616);
+  // Draws the entire Mainland as a multi-tiered 2.5D Isometric Voxel Diorama Continent
+  _drawIsoVoxelContinent(ctx) {
+    // TIER 0: Animated Ocean Foam Ring lapping at the isometric continent base
+    const foamPulse = Math.sin(this.time * 3) * 6;
+    this._drawIsoSlab(ctx, 0, 24, 650 + foamPulse, 325 + foamPulse * 0.5, 0, {
+      top: 'rgba(186, 230, 253, 0.38)',
+      topStroke: 'rgba(255, 255, 255, 0.55)',
+      topStrokeWidth: 2
+    });
 
-    ctx.fillStyle = '#fde68a';
-    ctx.fillRect(-574, -290, 1148, 594);
+    // TIER 1: Deep Bedrock & Terracotta Cliff Base Slab (3D extruded cliff face plunging into the sea)
+    this._drawIsoSlab(ctx, 0, 14, 636, 318, 28, {
+      top: '#92400e',
+      left: '#5c2808',
+      right: '#3b1804',
+      stroke: '#0f172a',
+      shadow: 'rgba(2, 6, 23, 0.45)'
+    });
 
-    // Lush green mainland continent turf with subtle pixel grass patches
-    ctx.fillStyle = '#22c55e';
-    ctx.fillRect(-556, -276, 1112, 560);
+    // TIER 2: Golden Sandy Beach Shoreline Terrace (extruded 3D sand & soil rim)
+    this._drawIsoSlab(ctx, 0, 4, 616, 308, 14, {
+      top: '#fde68a',
+      left: '#d97706',
+      right: '#b45309',
+      stroke: '#451a03',
+      topStroke: '#fef08a',
+      topStrokeWidth: 1.5
+    });
 
-    // Checkerboard grass texture patches across the mainland
-    for (let gy = -260; gy <= 250; gy += 45) {
-      for (let gx = -520; gx <= 500; gx += 65) {
-        ctx.fillStyle = ((gx + gy) & 1) === 0 ? '#16a34a' : '#4ade80';
-        ctx.fillRect(gx, gy, 28, 16);
+    // TIER 3: Main Emerald Meadow Continent Deck (extruded 3D turf slab)
+    this._drawIsoSlab(ctx, 0, -6, 588, 294, 14, {
+      top: '#22c55e',
+      left: '#15803d',
+      right: '#14532d',
+      stroke: '#0f172a',
+      topStroke: '#86efac',
+      topStrokeWidth: 2
+    });
+
+    // Isometric Checkerboard Grass Tiles across the Mainland Deck (12x12 isometric grid)
+    const gridN = 12;
+    const tileHW = 560 / gridN; // ~46.6
+    const tileHD = 280 / gridN; // ~23.3
+    for (let gx = -gridN / 2 + 0.5; gx < gridN / 2; gx += 1) {
+      for (let gy = -gridN / 2 + 0.5; gy < gridN / 2; gy += 1) {
+        const ix = (gx - gy) * tileHW;
+        const iy = (gx + gy) * tileHD - 6;
+        const isEven = ((Math.round(gx + 10) + Math.round(gy + 10)) & 1) === 0;
+        this._drawIsoSlab(ctx, ix, iy, tileHW - 1, tileHD - 0.5, 0, {
+          top: isEven ? '#22c55e' : '#16a34a',
+          topStroke: 'rgba(20, 83, 45, 0.18)',
+          topStrokeWidth: 1
+        });
       }
     }
 
-    // Sparkling River winding N->S on the right side of the mainland (around x = 235..265)
-    for (let ry = -276; ry < 284; ry += 12) {
-      const bend = Math.round(Math.sin(ry * 0.015) * 28);
-      const rx = 250 + bend;
-      ctx.fillStyle = '#0284c7';
-      ctx.fillRect(rx - 26, ry, 52, 14);
-      const foam = ((Math.floor(this.time * 6) + ry) % 24) < 8;
-      ctx.fillStyle = foam ? '#bae6fd' : '#38bdf8';
-      ctx.fillRect(rx - 18, ry + 2, 36, 10);
+    // Isometric River Channel cutting diagonally along the East valley (gx = 2.5, gy from -5.5 to +5.5)
+    for (let s = -5.5; s <= 5.5; s += 0.5) {
+      const gx = 2.6;
+      const gy = s;
+      const rx = (gx - gy) * tileHW;
+      const ry = (gx + gy) * tileHD - 6;
+      const foam = ((Math.floor(this.time * 5) + Math.round(s * 2)) % 4) === 0;
+      this._drawIsoSlab(ctx, rx, ry + 3, 28, 14, 4, {
+        top: foam ? '#7dd3fc' : '#0284c7',
+        left: '#0369a1',
+        right: '#075985',
+        topStroke: '#bae6fd',
+        topStrokeWidth: 1
+      });
     }
 
-    // Cobblestone & Dirt Mainland Roads connecting all districts & plots
-    ctx.fillStyle = '#d6d3d1';
-    // Main East-West Highway
-    ctx.fillRect(-450, -6, 900, 26);
-    // North-South Central Avenue
-    ctx.fillRect(-16, -230, 32, 460);
-    // Farmstead & Workshop North Road
-    ctx.fillRect(-360, -165, 680, 20);
-    // Charter & Paddlefield South Road
-    ctx.fillRect(-290, 175, 560, 20);
+    // Isometric Cobblestone Roads running along the two true 2:1 isometric axes (gx = 0 and gy = 0)
+    for (let r = -5; r <= 5; r += 0.5) {
+      // Axis 1 road (SW <-> NE)
+      const rx1 = r * tileHW;
+      const ry1 = -r * tileHD - 6;
+      this._drawIsoSlab(ctx, rx1, ry1, 24, 12, 3, {
+        top: '#e7e5e4',
+        left: '#a8a29e',
+        right: '#78716c',
+        topStroke: '#d6d3d1',
+        topStrokeWidth: 1
+      });
 
-    // Cobblestone pixel bricks along the roads
-    ctx.fillStyle = '#a8a29e';
-    for (let rx = -430; rx <= 430; rx += 28) {
-      ctx.fillRect(rx, 2, 14, 8);
-      ctx.fillRect(rx + 8, -160, 12, 6);
+      // Axis 2 road (NW <-> SE)
+      const rx2 = r * tileHW;
+      const ry2 = r * tileHD - 6;
+      this._drawIsoSlab(ctx, rx2, ry2, 24, 12, 3, {
+        top: '#e7e5e4',
+        left: '#a8a29e',
+        right: '#78716c',
+        topStroke: '#d6d3d1',
+        topStrokeWidth: 1
+      });
     }
 
-    // Buildable Land Plot Markers (dashed golden pixel squares where roles can construct buildings)
+    // Elevated 2.5D Isometric Highland Terraces for the Core Landmarks:
+    // 1. NW Golden Wheat Highland Terrace (-260, -130)
+    this._drawIsoSlab(ctx, -260, -130, 108, 54, 14, {
+      top: '#4ade80',
+      left: '#15803d',
+      right: '#166534',
+      stroke: '#0f172a',
+      topStroke: '#bbf7d0'
+    });
+
+    // 2. NE Engineer Foundry Highland Terrace (260, -130)
+    this._drawIsoSlab(ctx, 260, -130, 108, 54, 14, {
+      top: '#475569',
+      left: '#334155',
+      right: '#1e293b',
+      stroke: '#0f172a',
+      topStroke: '#38bdf8'
+    });
+
+    // 3. Central Town & Treasury Isometric Diamond Plaza (0, 0)
+    this._drawIsoSlab(ctx, 0, 0, 88, 44, 10, {
+      top: '#1e1b4b',
+      left: '#17153b',
+      right: '#0f0e26',
+      stroke: '#0f172a',
+      topStroke: '#22d3ee',
+      topStrokeWidth: 2.2
+    });
+
+    // 4. 2.5D Isometric Diamond Build Pads (+ BUILD PLOT)
     this.buildPlots.forEach((plot) => {
       const occupied = this.placedBuildings.some((b) => Math.hypot(b.x - plot.x, b.y - plot.y) < 48);
       if (occupied) return;
-      ctx.strokeStyle = 'rgba(253, 224, 71, 0.55)';
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(plot.x - 28, plot.y - 16, 56, 32);
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
-      ctx.fillRect(plot.x - 26, plot.y - 14, 52, 28);
+      this._drawIsoSlab(ctx, plot.x, plot.y, 44, 22, 5, {
+        top: 'rgba(254, 240, 138, 0.22)',
+        left: 'rgba(217, 119, 6, 0.45)',
+        right: 'rgba(180, 83, 9, 0.45)',
+        topStroke: '#fde047',
+        topStrokeWidth: 1.5
+      });
       ctx.fillStyle = '#fef08a';
-      ctx.font = '900 7px "Courier New", monospace';
+      ctx.font = '900 7.5px "Courier New", monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('+ BUILD PLOT', plot.x, plot.y + 3);
+      ctx.fillText('+ BUILD PAD', plot.x, plot.y + 3);
     });
   }
 
   _drawMainlandLandmarks(ctx, nearestHotspot) {
-    // 1. Farmstead Golden Wheat Field & Granary Keep (-320, -165)
+    // 1. NW Golden Wheat Terrace & Granary Keep (-260, -130)
     {
       const lm = this.landmarks['farmstead'];
       const cx = lm.x;
-      const cy = lm.y;
-      // Tilled soil patch
-      ctx.fillStyle = '#78350f';
-      ctx.fillRect(cx - 78, cy - 22, 156, 62);
+      const cy = lm.y - 10;
+      // Isometric tilled soil diamond
+      this._drawIsoSlab(ctx, cx, cy + 12, 72, 36, 4, {
+        top: '#78350f',
+        left: '#451a03',
+        right: '#27170b',
+        topStroke: '#92400e'
+      });
+      // Swaying Golden Wheat Stalks arranged in isometric diamond rows
       const sway = Math.round(Math.sin(this.time * 4) * 2);
-      for (let wx = -68; wx <= 64; wx += 16) {
-        for (let wy = -14; wy <= 28; wy += 14) {
+      for (let u = -2; u <= 2; u++) {
+        for (let v = -2; v <= 2; v++) {
+          const wx = cx + (u - v) * 12;
+          const wy = cy + 10 + (u + v) * 6;
           ctx.fillStyle = '#fde047';
-          ctx.fillRect(cx + wx + sway, cy + wy - 6, 7, 10);
+          ctx.fillRect(wx - 2 + sway, wy - 9, 5, 9);
           ctx.fillStyle = '#ca8a04';
-          ctx.fillRect(cx + wx, cy + wy + 2, 7, 4);
+          ctx.fillRect(wx - 2, wy - 2, 5, 3);
         }
       }
       if (this._isReady('pixelCastle')) {
-        ctx.drawImage(this.sprites.pixelCastle, cx - 44, cy - 92, 88, 88);
+        ctx.drawImage(this.sprites.pixelCastle, cx - 48, cy - 88, 96, 96);
       }
-      this._drawZoneSign(ctx, cx, cy + 48, '🌾 WHEAT FARMLAND', lm.color, nearestHotspot && nearestHotspot.id === 'farmstead');
+      this._drawZoneSign(ctx, cx, cy + 52, '🌾 WHEAT TERRACE', lm.color, nearestHotspot && nearestHotspot.id === 'farmstead');
     }
 
-    // 2. Engineer Tech Rig (285, -165)
+    // 2. NE Engineer Foundry Ridge (260, -130)
     {
       const lm = this.landmarks['workshop'];
       const cx = lm.x;
-      const cy = lm.y;
-      ctx.fillStyle = '#334155';
-      ctx.fillRect(cx - 64, cy - 24, 128, 52);
+      const cy = lm.y - 10;
       if (this._isReady('pixelWorkstation')) {
-        ctx.drawImage(this.sprites.pixelWorkstation, cx - 58, cy - 64, 64, 64);
-        ctx.drawImage(this.sprites.pixelWorkstation, cx + 2, cy - 64, 64, 64);
+        ctx.drawImage(this.sprites.pixelWorkstation, cx - 60, cy - 60, 68, 68);
+        ctx.drawImage(this.sprites.pixelWorkstation, cx + 2, cy - 60, 68, 68);
       }
-      this._drawZoneSign(ctx, cx, cy + 38, '⚙️ ENGINEER RIG', lm.color, nearestHotspot && nearestHotspot.id === 'workshop');
+      this._drawZoneSign(ctx, cx, cy + 44, '⚙️ ENGINEER RIDGE', lm.color, nearestHotspot && nearestHotspot.id === 'workshop');
     }
 
-    // 3. Lineage Ascension Shrine (-385, 25)
+    // 3. West Lineage Ascension Shrine (-380, 0)
     {
       const lm = this.landmarks['lineage-hall'];
       const cx = lm.x;
       const cy = lm.y;
-      ctx.fillStyle = '#581c87';
-      ctx.fillRect(cx - 52, cy - 22, 104, 48);
-      ctx.strokeStyle = '#fde047';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(cx - 52, cy - 22, 104, 48);
+      this._drawIsoSlab(ctx, cx, cy, 66, 33, 12, {
+        top: '#581c87',
+        left: '#3b0764',
+        right: '#2e1065',
+        topStroke: '#fde047'
+      });
       if (this._isReady('ancestorSvg')) {
-        ctx.drawImage(this.sprites.ancestorSvg, cx - 40, cy - 52, 34, 42);
-        ctx.drawImage(this.sprites.ancestorSvg, cx + 8, cy - 52, 34, 42);
+        ctx.drawImage(this.sprites.ancestorSvg, cx - 38, cy - 52, 34, 42);
+        ctx.drawImage(this.sprites.ancestorSvg, cx + 6, cy - 52, 34, 42);
       }
-      this._drawZoneSign(ctx, cx, cy + 36, '🧬 LINEAGE SHRINE', lm.color, nearestHotspot && nearestHotspot.id === 'lineage-hall');
+      this._drawZoneSign(ctx, cx, cy + 38, '🧬 LINEAGE SHRINE', lm.color, nearestHotspot && nearestHotspot.id === 'lineage-hall');
     }
 
-    // 4. River Market Bridge (365, 20)
+    // 4. East River Market Bridge (360, 0)
     {
       const lm = this.landmarks['market-exchange'];
       const cx = lm.x;
       const cy = lm.y;
       if (this._isReady('pixelBridge')) {
-        ctx.drawImage(this.sprites.pixelBridge, cx - 48, cy - 58, 96, 96);
+        ctx.drawImage(this.sprites.pixelBridge, cx - 52, cy - 64, 104, 104);
       }
       this._drawZoneSign(ctx, cx, cy + 40, '🛒 MARKET BRIDGE', lm.color, nearestHotspot && nearestHotspot.id === 'market-exchange');
     }
 
-    // 5. Archon Charter Monolith (-245, 190)
+    // 5. South Archon Charter Monolith (0, 210)
     {
       const lm = this.landmarks['charter-court'];
       const cx = lm.x;
       const cy = lm.y;
+      this._drawIsoSlab(ctx, cx, cy, 68, 34, 10, {
+        top: '#334155',
+        left: '#1e293b',
+        right: '#0f172a',
+        topStroke: '#f472b6'
+      });
       if (this._isReady('pixelMonolith')) {
-        ctx.drawImage(this.sprites.pixelMonolith, cx - 44, cy - 72, 88, 88);
+        ctx.drawImage(this.sprites.pixelMonolith, cx - 48, cy - 82, 96, 96);
       }
-      this._drawZoneSign(ctx, cx, cy + 28, '👑 CHARTER MONOLITH', lm.color, nearestHotspot && nearestHotspot.id === 'charter-court');
+      this._drawZoneSign(ctx, cx, cy + 38, '👑 CHARTER MONOLITH', lm.color, nearestHotspot && nearestHotspot.id === 'charter-court');
     }
 
-    // 6. Central Town Plaza & Treasury Core (0, 5)
+    // 6. Central Town Plaza & Treasury Core (0, 0)
     {
       const lm = this.landmarks['core'];
       const cx = lm.x;
-      const cy = lm.y;
+      const cy = lm.y - 8;
       const treasury = this.society ? this.society.treasuryBalance : 115;
-      ctx.fillStyle = '#1e1b4b';
-      ctx.fillRect(cx - 58, cy - 28, 116, 56);
-      ctx.strokeStyle = '#22d3ee';
-      ctx.lineWidth = 2.5;
-      ctx.strokeRect(cx - 58, cy - 28, 116, 56);
-      ctx.fillStyle = '#0ea5e9';
-      ctx.fillRect(cx - 26, cy - 16, 52, 32);
+      this._drawIsoSlab(ctx, cx, cy, 48, 24, 18, {
+        top: '#0ea5e9',
+        left: '#0284c7',
+        right: '#0369a1',
+        topStroke: '#fef08a'
+      });
       this._drawZoneSign(ctx, cx, cy + 38, `🏦 TREASURY: ${treasury}G`, lm.color, nearestHotspot && nearestHotspot.id === 'core');
     }
   }
 
   _drawZoneSign(ctx, x, y, text, borderCol, isNear) {
     const w = Math.max(118, text.length * 6.5 + 14);
-    ctx.fillStyle = isNear ? '#fde047' : 'rgba(15, 23, 42, 0.9)';
+    ctx.fillStyle = isNear ? '#fde047' : 'rgba(15, 23, 42, 0.92)';
     ctx.strokeStyle = isNear ? '#0f172a' : borderCol;
     ctx.lineWidth = 2;
-    ctx.fillRect(x - w / 2, y - 10, w, 18);
-    ctx.strokeRect(x - w / 2, y - 10, w, 18);
+    ctx.fillRect(Math.round(x - w / 2), Math.round(y - 10), w, 18);
+    ctx.strokeRect(Math.round(x - w / 2), Math.round(y - 10), w, 18);
     ctx.fillStyle = isNear ? '#0f172a' : '#ffffff';
     ctx.font = '900 8px "Courier New", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(text, x, y + 2);
+    ctx.fillText(text, Math.round(x), Math.round(y + 2));
   }
 
   _getArchonId() {
@@ -906,17 +1075,14 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
 
     const renderables = [];
 
-    // 1. Forest Trees
     this.trees.forEach((t) => {
       renderables.push({ kind: 'tree', y: t.y, data: t });
     });
 
-    // 2. Player & AI Built Structures (House, Factory, Shop, Paddlefield)
     this.placedBuildings.forEach((b) => {
       renderables.push({ kind: 'building', y: b.y, data: b });
     });
 
-    // 3. Living Role Agents
     this.society.lineages.forEach((lin) => {
       const ent = this.entities[lin.id];
       if (ent) {
@@ -929,7 +1095,7 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
     renderables.forEach((item) => {
       if (item.kind === 'tree') {
         if (this._isReady('pixelTree')) {
-          ctx.drawImage(this.sprites.pixelTree, item.data.x - 24, item.data.y - 42, 48, 48);
+          ctx.drawImage(this.sprites.pixelTree, Math.round(item.data.x - 26), Math.round(item.data.y - 46), 52, 52);
         }
       } else if (item.kind === 'building') {
         this._drawPlacedBuilding(ctx, item.data, nearestHotspot);
@@ -938,7 +1104,6 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       }
     });
 
-    // 4. Physical 3D Bouncing Particles
     this.particles.forEach((p) => {
       ctx.fillStyle = 'rgba(0,0,0,0.3)';
       ctx.fillRect(p.x - 2, p.y, p.size, 2);
@@ -959,21 +1124,18 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       paddlefield: 'pixelPaddlefield'
     };
     const key = spriteMap[b.type];
-    const size = b.type === 'paddlefield' ? 128 : 104;
+    const size = b.type === 'paddlefield' ? 132 : 106;
 
     if (this._isReady(key)) {
       ctx.drawImage(this.sprites[key], Math.round(b.x - size / 2), Math.round(b.y - size * 0.72), size, size);
     }
 
-    // Animated details per building type:
     if (b.type === 'factory') {
-      // Rising smoke puffs from factory smokestacks
       const puffY = (this.time * 18 + b.ballPhase * 10) % 24;
-      ctx.fillStyle = 'rgba(241, 245, 249, 0.75)';
-      ctx.fillRect(b.x - 14, b.y - 62 - puffY, 8, 6);
-      ctx.fillRect(b.x + 2, b.y - 66 - puffY * 0.8, 9, 6);
+      ctx.fillStyle = 'rgba(241, 245, 249, 0.78)';
+      ctx.fillRect(b.x - 14, b.y - 66 - puffY, 8, 6);
+      ctx.fillRect(b.x + 2, b.y - 70 - puffY * 0.8, 9, 6);
     } else if (b.type === 'paddlefield') {
-      // Live bouncing pixel tennis/padel ball rallying back and forth on every built Paddlefield!
       const t = this.time * 3.4 + (b.ballPhase || 0);
       const bx = b.x + Math.sin(t) * 28;
       const by = b.y - 6 + Math.cos(t) * 8;
@@ -987,7 +1149,6 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       ctx.strokeRect(bx - 4, by - bz - 4, 7, 7);
     }
 
-    // Building nameplate badge
     const tagColors = {
       house: '#4ade80',
       factory: '#38bdf8',
@@ -1003,7 +1164,7 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
     this._drawZoneSign(
       ctx,
       b.x,
-      b.y + 24,
+      b.y + 26,
       `${icons[b.type]} ${b.type.toUpperCase()} LV.${b.lv}`,
       tagColors[b.type] || '#fde047',
       isNear
@@ -1021,7 +1182,6 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
     const ax = Math.round(ent.x);
     const ay = Math.round(ent.y - walkBounce);
 
-    // Highlight ring under controlled character
     if (isPlayer) {
       ctx.save();
       ctx.strokeStyle = '#fde047';
@@ -1049,7 +1209,6 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       if (ent.facing < 0) ctx.scale(-1, 1);
       ctx.drawImage(this.sprites[spriteKey], -27, -50, 54, 54);
 
-      // Draw Equipped Role Work Tool in character's hand with swing animation!
       const toolKey = ent.overrideTool
         ? ent.overrideTool
         : lin.role === 'farmer'
@@ -1071,8 +1230,7 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       ctx.restore();
     }
 
-    // Nameplate + Stamina + Tool Level above character
-    const tagY = ay - 54;
+    const tagY = ay - 56;
     const toolLv = lin.toolLevel || 1;
     ctx.fillStyle = isPlayer ? '#fde047' : 'rgba(15, 23, 42, 0.88)';
     ctx.strokeStyle = isPlayer ? '#0f172a' : '#38bdf8';
