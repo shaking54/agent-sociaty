@@ -44,3 +44,17 @@ The server listens only on localhost. Opening `public/index.html` directly does 
 ### Experiment
 
 `npm test` runs 100 actual backend turns over HTTP, checks persistence across server restart, player commands, invalid actions, stale writes and cross-origin rejection, and exercises a UI-controller command with a simulated DOM/scene. See [experiment notes](docs/experiment.md). It does not validate canvas rendering or replace an interactive browser test.
+
+### Experimental OpenClaw runner
+
+The optional runner asks OpenClaw to choose an action for one non-player character per turn. The backend validates and applies that action; characters can leave short messages for one another, and each character's short notes and inbox are saved with the world. Agent-mode server ticks are disabled so the model decisions, not the rule-based scheduler, drive these turns. Existing player controls still work. A revision conflict stops the runner rather than applying a decision to changed state.
+
+```sh
+SOCIETY_AGENT_MODE=openclaw npm start
+# In another terminal, after configuring OpenClaw and a usable model login:
+SOCIETY_TURNS=2 npm run experiment:openclaw
+```
+
+The runner only connects to a local server. `SOCIETY_URL` changes that local address and `SOCIETY_TURNS` sets the number of turns (1–100). Agent invocations consume model allowance or may incur provider charges. The runner copies the OpenClaw JSON config to a private temporary directory, removes channel configuration, denies all tools, and uses an empty workspace. It does not edit the existing OpenClaw configuration. The temporary copy is deleted after a normal run; avoid placing secrets directly in config. It requires an OpenClaw `agent exec` version supporting `--config`, and a model/login usable by that isolated command. JSON5 configuration files are not currently supported.
+
+**Limitations:** Each decision currently runs as a fresh OpenClaw session. Character notes and messages persist in the game world, but native session history and generation handover are not yet implemented. Model failures, invalid JSON and revision conflicts stop the run without applying that decision. A simulated context counter still governs the game's retirement mechanic; it is not a measurement of real model context. This is a local prototype, not a secure multi-user deployment.

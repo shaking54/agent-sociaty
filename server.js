@@ -1,11 +1,12 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const {createWorld, applyAction} = require('./engine');
+const {createWorld, applyAction, applyAgentTurn} = require('./engine');
 
 const PORT = Number(process.env.PORT || 4173);
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const DATA_FILE = process.env.SOCIETY_DATA_FILE || path.join(__dirname, 'data', 'world.json');
+const AGENT_MODE = process.env.SOCIETY_AGENT_MODE === 'openclaw';
 const MIME = { '.html':'text/html; charset=utf-8', '.css':'text/css; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.json':'application/json; charset=utf-8', '.jpg':'image/jpeg', '.png':'image/png', '.svg':'image/svg+xml', '.ico':'image/x-icon' };
 let world = null;
 try { world = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
@@ -19,7 +20,7 @@ function save(value) {
 }
 const server = http.createServer((req,res) => {
   const url = new URL(req.url, 'http://localhost');
-  if (url.pathname === '/api/health' && req.method === 'GET') return json(res,200,{ok:true,mode:'local-single-player',timestamp:new Date().toISOString()});
+  if (url.pathname === '/api/health' && req.method === 'GET') return json(res,200,{ok:true,mode:AGENT_MODE?'openclaw':'local-single-player',timestamp:new Date().toISOString()});
   if (url.pathname === '/api/world' && req.method === 'GET') return json(res,200,world);
   if (url.pathname === '/api/action') {
     if (req.method !== 'POST') return json(res,405,{error:'Method not allowed'});
@@ -33,7 +34,10 @@ const server = http.createServer((req,res) => {
       if (!input || !Number.isSafeInteger(input.revision) || !input.action || typeof input.action.type !== 'string') return json(res,400,{error:'Invalid action payload'});
       if (input.revision !== world.revision) return json(res,409,{error:'World changed in another session',revision:world.revision});
       let next;
-      try { next=applyAction(world,input.action); } catch(error) { return json(res,400,{error:error.message}); }
+      try {
+        if (input.action.type==='agent-turn') { if(!AGENT_MODE) throw Error('Agent mode disabled'); next=applyAgentTurn(world,input.action.decision); }
+        else { if(AGENT_MODE && input.action.type==='tick') throw Error('Rule-based ticks disabled in OpenClaw mode'); next=applyAction(world,input.action); }
+      } catch(error) { return json(res,400,{error:error.message}); }
       try { save(next); world=next; return json(res,200,world); }
       catch { return json(res,500,{error:'Unable to save world'}); }
     });
