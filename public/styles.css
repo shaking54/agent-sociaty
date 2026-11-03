@@ -445,3 +445,11 @@ html, body {
   font-family: inherit;
   font-size: 10px;
 }
+
+/* Persistent world journal */
+.history-panel { position: fixed; z-index: 20; right: 12px; top: 95px; width: min(330px, 85vw); max-height: 40vh; overflow: auto; color: #fef3c7; background: rgba(21, 27, 45, .93); border: 2px solid #d6a54d; border-radius: 6px; padding: 9px; font: 12px/1.5 sans-serif; }
+.history-panel summary { cursor: pointer; font-weight: bold; }
+#saveStatus { float: right; font-weight: normal; color: #a7f3d0; }
+#historyList { padding-left: 22px; margin: 8px 0 0; }
+#historyList li { margin-bottom: 7px; overflow-wrap: anywhere; }
+@media (max-width: 600px) { .history-panel { top: 125px; width: min(265px, 74vw); } }

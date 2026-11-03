@@ -56,6 +56,79 @@
   scene.setSociety(soc);
   scene.setPlayerAgent(playerAgentId);
 
+  // Single-player world persistence. The browser still owns the simulation rules;
+  // the local service stores snapshots and the event journal with revision checks.
+  let revision = 0;
+  let pendingEvents = [];
+  let history = [];
+  let saving = false;
+  let dirty = false;
+  let persistenceReady = false;
+  let saveTimer;
+  const status = document.getElementById('saveStatus');
+  function renderHistory() {
+    const list = document.getElementById('historyList');
+    list.replaceChildren();
+    [...history, ...pendingEvents].slice(-100).reverse().forEach(event => {
+      const item = document.createElement('li');
+      item.textContent = `Day ${event.turn} — ${event.message}`;
+      list.appendChild(item);
+    });
+  }
+  function logEvent(message) {
+    pendingEvents.push({turn: soc.completedTurns, message: String(message).slice(0, 500)});
+    renderHistory();
+    scheduleSave();
+  }
+  function scheduleSave() {
+    dirty = true;
+    if (!persistenceReady) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveWorld, 250);
+  }
+  async function saveWorld() {
+    if (saving || !dirty || !persistenceReady) return;
+    saving = true; dirty = false;
+    const events = pendingEvents.splice(0, 500);
+    const snapshot = JSON.parse(JSON.stringify({society: soc, buildings: scene.placedBuildings, playerAgentId}));
+    status.textContent = 'Saving…';
+    try {
+      const response = await fetch('/api/world', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({revision, snapshot, events})});
+      if (response.status === 409) {
+        pendingEvents.unshift(...events); dirty = true; persistenceReady = false;
+        status.textContent = 'Conflict — reload';
+        return;
+      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const saved = await response.json();
+      revision = saved.revision; history = saved.history;
+      status.textContent = 'Saved'; renderHistory();
+    } catch (error) {
+      pendingEvents.unshift(...events); dirty = true;
+      status.textContent = 'Offline — retrying';
+      saveTimer = setTimeout(saveWorld, 3000);
+    } finally {
+      saving = false;
+      if (dirty && persistenceReady && status.textContent !== 'Offline — retrying') scheduleSave();
+    }
+  }
+  async function loadWorld() {
+    try {
+      const response = await fetch('/api/world');
+      if (!response.ok) throw new Error('World unavailable');
+      const saved = await response.json();
+      revision = saved.revision; history = saved.history || [];
+      if (saved.snapshot) {
+        Object.assign(soc, saved.snapshot.society);
+        scene.placedBuildings = saved.snapshot.buildings;
+        if (soc.lineages.some(l => l.id === saved.snapshot.playerAgentId)) playerAgentId = saved.snapshot.playerAgentId;
+        scene.setSociety(soc); scene.setPlayerAgent(playerAgentId);
+      }
+      persistenceReady = true; status.textContent = 'Saved'; renderHistory();
+      if (!saved.snapshot) logEvent('World created.');
+    } catch (error) { status.textContent = 'Offline — not saved'; }
+  }
+
   function computePower(lin) {
     return lin.wallet + lin.completedSales * 2 + (lin.currentGen - 1) * 2 + (lin.buildingsOwned || 0) * 5;
   }
@@ -89,6 +162,7 @@
     }
     tagEl.textContent = tagText;
     textEl.textContent = message;
+    logEvent(`${tagText}: ${message}`);
   }
 
   function switchPlayerAgent(nextId) {
@@ -106,6 +180,7 @@
       isArchon
     );
     updateHUD();
+    scheduleSave();
   }
 
   function cycleNextAgent() {
@@ -267,6 +342,7 @@
       upgradeAllBuildings(lin, ent.x, ent.y);
     }
 
+    scheduleSave();
     if (lin.contextTokens >= lin.contextThreshold && lin.currentGen < lin.maxGen) {
       ascendToNextGen(lin, ent.x, ent.y);
     }
@@ -409,6 +485,7 @@
       scene.spawnBurst(ax, ay, '#38bdf8', 5);
     }
 
+    logEvent(`${actor.id} took an autonomous turn (stamina ${actor.stamina}%, wallet ${actor.wallet}G).`);
     updateHUD();
   }
 
@@ -476,7 +553,7 @@
     }
   }, 120);
 
-  let aiInterval = setInterval(stepAutonomousWorld, 2000);
+  let aiInterval;
   function setSpeed(spd) {
     gameSpeed = spd;
     if (aiInterval) clearInterval(aiInterval);
@@ -508,6 +585,7 @@
       const ent = scene.getPlayerEntity();
       if (ent) eatOrTradeAtMarket(lin, ent.x, ent.y, true);
       updateHUD();
+      logEvent(`${lin.id} visited the market (stamina ${lin.stamina}%).`);
     } else if (e.code === 'Tab') {
       e.preventDefault();
       cycleNextAgent();
@@ -553,5 +631,5 @@
     setSpeed(next);
   });
 
-  updateHUD();
+  loadWorld().then(() => { updateHUD(); aiInterval = setInterval(stepAutonomousWorld, 2000); });
 })();
