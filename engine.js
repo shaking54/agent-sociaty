@@ -89,4 +89,31 @@ function applyAction(world, input) {
   next.history=next.history.slice(-500);
   return next;
 }
-module.exports={createWorld,applyAction};
+// Model output is data, never executable code. Only these game operations can
+// be requested by an agent, and the ordinary authoritative rules still apply.
+function applyAgentTurn(world, decision) {
+  if (!decision || typeof decision !== 'object' || Array.isArray(decision)) throw Error('Invalid decision');
+  const actor = world.snapshot.society.lineages.find(l => l.id === decision.actor);
+  if (!actor || actor.id === world.snapshot.playerAgentId) throw Error('Invalid actor');
+  const actions = {work:{type:'interact',kind:{farmer:'harvest',engineer:'craft',manager:'rally'}[actor.role]}, eat:{type:'interact',kind:'trade'}, rest:{type:'interact',kind:'house'}, tool:{type:'tool'}};
+  let action=actions[decision.action];
+  if (decision.action === 'build' && ['house','factory','shop','paddlefield'].includes(decision.building)) action={type:'build',building:decision.building};
+  if (!action) throw Error('Invalid agent action');
+  if (typeof decision.memory !== 'string' || decision.memory.length>600) throw Error('Invalid agent memory');
+  let msg=null;
+  if (decision.message != null) {
+    if (!decision.message || typeof decision.message !== 'object' || typeof decision.message.to !== 'string' || typeof decision.message.text !== 'string' || !decision.message.text.trim() || decision.message.text.length>250 || decision.message.to===actor.id || !world.snapshot.society.lineages.some(l=>l.id===decision.message.to)) throw Error('Invalid message');
+    msg={from:actor.id,to:decision.message.to,text:decision.message.text.trim()};
+  }
+  const temp=structuredClone(world), original=temp.snapshot.playerAgentId;
+  temp.snapshot.playerAgentId=actor.id;
+  temp.snapshot.society.completedTurns++;
+  temp.snapshot.society.treasuryBalance+=1+Math.floor(temp.snapshot.buildings.filter(b=>b.type==='factory').length*.5);
+  const next=applyAction(temp,action); next.snapshot.playerAgentId=original;
+  next.agentMemories=next.agentMemories||{}; next.agentMemories[actor.id]=decision.memory;
+  next.agentMessages=(next.agentMessages||[]).filter(m=>m.to!==actor.id);
+  if(msg) { next.agentMessages.push(msg); next.history.push({turn:next.snapshot.society.completedTurns,message:`${msg.from} → ${msg.to}: ${msg.text}`,timestamp:new Date().toISOString()}); }
+  next.agentMessages=next.agentMessages.slice(-500); next.history=next.history.slice(-500);
+  return next;
+}
+module.exports={createWorld,applyAction,applyAgentTurn};

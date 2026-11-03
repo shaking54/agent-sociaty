@@ -3,7 +3,7 @@
   const DATA = window.AGENT_SOCIETY_DATA;
   let soc = DATA.SOCIETIES['active-dynasty-sim'];
   let playerAgentId = 'farmer-1', revision = 0, gameSpeed = 1, keysPressed = {};
-  let ready = false, stopped = false, busy = false, queue = [], aiInterval;
+  let ready = false, stopped = false, busy = false, queue = [], aiInterval, agentMode = false;
   const TOOL_META = {
     farmer: {name:'GOLDEN SCYTHE',short:'SCYTHE+',icon:'./assets/sprites/pixel-tool-scythe.png?v=sharp2'},
     engineer: {name:'POWER WRENCH',short:'WRENCH+',icon:'./assets/sprites/pixel-tool-wrench.png?v=sharp2'},
@@ -104,5 +104,5 @@
   document.getElementById('btnWeather').addEventListener('click',e=>{const mode=scene.cycleWeatherMode();e.currentTarget.textContent={sunny:'☀️',sunset:'🌅',rain:'🌧️',night:'🌙'}[mode]||'☀️';});
   document.getElementById('btnPixelMode').addEventListener('click',e=>{const scale=scene.cyclePixelMode();e.currentTarget.textContent=scale===1?'✨ HD 1×':`🕹️ ${scale}×`;});
   document.getElementById('btnSpeed').addEventListener('click',()=>setSpeed(gameSpeed===1?2:gameSpeed===2?4:gameSpeed===4?0:1));
-  fetch('/api/world').then(r=>{if(!r.ok)throw Error('World unavailable');return r.json();}).then(world=>{renderWorld(world);ready=true;status.textContent='Saved';setSpeed(1);}).catch(()=>{status.textContent='Offline — reload';});
+  Promise.all([fetch('/api/world'),fetch('/api/health')]).then(async ([r,h])=>{if(!r.ok||!h.ok)throw Error('World unavailable');agentMode=(await h.json()).mode==='openclaw';return r.json();}).then(world=>{renderWorld(world);ready=true;status.textContent='Saved';if(agentMode){document.getElementById('btnSpeed').textContent='🤖 AGENTS';document.getElementById('btnSpeed').disabled=true;setInterval(async()=>{if(busy||queue.length||stopped)return;try {const r=await fetch('/api/world');if(r.ok)renderWorld(await r.json());}catch{}},2000);}else setSpeed(1);}).catch(()=>{status.textContent='Offline — reload';});
 })();

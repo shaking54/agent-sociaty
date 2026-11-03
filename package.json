@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node test/experiment.js"
+    "test": "node test/experiment.js && node test/agent-integration.js && node test/agent-http.js",
+    "experiment:openclaw": "node scripts/openclaw-experiment.js"
   },
   "keywords": [
     "agent-society",
