@@ -81,6 +81,11 @@
     </div>
   </div>
 
+  <details class="history-panel" id="historyPanel">
+    <summary>📜 WORLD HISTORY <span id="saveStatus">Connecting…</span></summary>
+    <ol id="historyList" aria-live="polite"></ol>
+  </details>
+
   <!-- FLOATING CONTEXTUAL PROMPT BUBBLE -->
   <div id="worldPromptBubble" class="world-prompt hidden">
     <span class="key-cap">SPACE</span>
@@ -91,25 +96,25 @@
   <div class="hud-bottom">
     <!-- 5-SLOT PIXEL BUILD & TOOL HOTBAR -->
     <div class="hotbar-row" aria-label="Build & Tool Hotbar">
-      <div class="hotbar-slot" data-slot="house" title="Build House on Land (15G): Passive Stamina Regen & +10% Heir Mastery">
+      <div class="hotbar-slot" data-slot="house" title="Build House on Land (15G): Restore stamina when used">
         <span class="slot-key">1</span>
         <img src="./assets/sprites/pixel-house.png?v=sharp2" alt="House" />
         <span class="slot-name">HOUSE</span>
         <span class="slot-cost">15G</span>
       </div>
-      <div class="hotbar-slot" data-slot="factory" title="Build Factory on Land (25G): Auto-produces Tech Blueprints & +3G/turn">
+      <div class="hotbar-slot" data-slot="factory" title="Build Factory on Land (25G): Increases treasury income">
         <span class="slot-key">2</span>
         <img src="./assets/sprites/pixel-factory.png?v=sharp2" alt="Factory" />
         <span class="slot-name">FACTORY</span>
         <span class="slot-cost">25G</span>
       </div>
-      <div class="hotbar-slot" data-slot="shop" title="Build Market Shop on Land (20G): Sells Rations & Tools (+2 Sales Power)">
+      <div class="hotbar-slot" data-slot="shop" title="Build Market Shop on Land (20G): Provides market access">
         <span class="slot-key">3</span>
         <img src="./assets/sprites/pixel-shop.png?v=sharp2" alt="Shop" />
         <span class="slot-name">SHOP</span>
         <span class="slot-cost">20G</span>
       </div>
-      <div class="hotbar-slot" data-slot="paddlefield" title="Build Paddlefield Court on Land (30G): Play Padel/Tennis Rallies for +Harmony & +GCOIN">
+      <div class="hotbar-slot" data-slot="paddlefield" title="Build Paddlefield Court on Land (30G): Play rallies for Harmony & GCOIN">
         <span class="slot-key">4</span>
         <img src="./assets/sprites/pixel-paddlefield.png?v=sharp2" alt="Paddlefield" />
         <span class="slot-name">PADDLEFIELD</span>

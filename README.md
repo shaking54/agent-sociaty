@@ -19,15 +19,28 @@ An interactive **Pixel-Art 3D Floating-Island & 2.5D Isometric Voxel Simulator G
     - `pixel-monolith.png` / `monolith.png`: Glowing Pink/Cyan Charter Crystal Monolith
     - `iso-world-map.jpg`: Optional full-board 2.5D Isometric Voxel Observatory Map (`🗺️ World Map` toggle)
 
-### Core Game Rules (`SHA-86` & `SHA-85`)
-1. **Stamina & Rations Survival Loop**: Every turn drains Stamina. Hungry agents (`<62% Stamina`) walk across the bridges to the **GCOIN Market** to buy and eat a **Staple Food Ration (1 GCOIN)** for `+42% Stamina`.
-2. **Role Production & District Upgrades (`Lv.1 → Lv.5`)**:
-   - **Farmers (Farmstead)**: Harvest Staple Food Rations + earn Farmer Wage.
-   - **Engineers (Workshop)**: Craft Storage FIFO & Irrigation Blueprints + earn Engineer Wage.
-   - **Managers (Town Hall Clubhouse)**: Boost **Society Harmony (%)** + coordinate pilots.
-3. **10,000-Token Generational Handover**: When an agent's context reaches `10,000 tokens`, they walk to the **Lineage Archive**, retire, and spawn a **Gen +1 Heir** who inherits 100% of Wallet GCOIN, Inventory, and `+10% Dynasty Wage Mastery`.
-4. **Archon Power & Playable Charter Laws**: `Power = Wallet + (Completed Sales × 2) + Gen Bonus`. The `#1 Power` agent wears the **Archon Crown** and can enact/repeal **6 Charter Laws** that dynamically alter game mechanics.
+### How this prototype works
 
-### Running Locally
-- **Zero-Server (Direct File)**: Open `public/index.html` directly in any browser.
-- **Optional Local Server**: Run `npm start` (`http://localhost:4186`).
+The Node.js backend owns the rule-based simulation, validates and applies commands, and persists one local single-player world and its most recent 500 journal events to `data/world.json`. The browser renders the world and sends commands; it triggers autonomous turns on a timer while the page is open. It is not a multi-user server or an LLM-agent simulation.
+
+- One non-player actor acts per turn; work mints role-based wages, farmers produce rations, engineers gain sales power, and managers improve harmony. Player actions use keyboard or hotbar controls.
+- Hungry agents buy available rations from other agents. If they cannot buy, the emergency-granary law pays 1 treasury GCOIN for a ration; if the reserve cannot pay, no ration is provided.
+- At 10,000 context tokens an agent retires and passes its wallet and assets to the next generation, up to the preset generation cap. A shrine handover requires the threshold.
+- Buildings add power and factories increase treasury income. Tool upgrades increase work output. The highest-power Archon can toggle a wage-reform law; other legacy charter descriptions are not implemented.
+- Expand **WORLD HISTORY** to inspect recent events. A revision conflict means another browser changed the world; reload the stopped tab. The service is intended for one local player and has no account authentication.
+
+### Run locally
+
+Requires Node.js 18 or newer; no packages are needed.
+
+```sh
+npm start
+# Open http://127.0.0.1:4173
+npm test
+```
+
+The server listens only on localhost. Opening `public/index.html` directly does not connect to the persistence API. The UI reports when saving is unavailable. Save data is excluded from Git; back up `data/world.json` if needed. `PORT` and `SOCIETY_DATA_FILE` can override the server port and save location.
+
+### Experiment
+
+`npm test` runs 100 actual backend turns over HTTP, checks persistence across server restart, player commands, invalid actions, stale writes and cross-origin rejection, and exercises a UI-controller command with a simulated DOM/scene. See [experiment notes](docs/experiment.md). It does not validate canvas rendering or replace an interactive browser test.
