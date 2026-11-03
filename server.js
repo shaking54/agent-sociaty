@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const {createWorld, applyAction} = require('./engine');
 
 const PORT = Number(process.env.PORT || 4173);
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -8,7 +9,7 @@ const DATA_FILE = process.env.SOCIETY_DATA_FILE || path.join(__dirname, 'data', 
 const MIME = { '.html':'text/html; charset=utf-8', '.css':'text/css; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.json':'application/json; charset=utf-8', '.jpg':'image/jpeg', '.png':'image/png', '.svg':'image/svg+xml', '.ico':'image/x-icon' };
 let world = null;
 try { world = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
-catch (error) { if (error.code !== 'ENOENT') throw error; }
+catch (error) { if (error.code !== 'ENOENT') throw error; world = createWorld(); }
 function json(res, status, value) { res.writeHead(status, {'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store'}); res.end(JSON.stringify(value)); }
 function save(value) {
   fs.mkdirSync(path.dirname(DATA_FILE), {recursive:true});
@@ -19,25 +20,22 @@ function save(value) {
 const server = http.createServer((req,res) => {
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname === '/api/health' && req.method === 'GET') return json(res,200,{ok:true,mode:'local-single-player',timestamp:new Date().toISOString()});
-  if (url.pathname === '/api/world') {
-    if (req.method === 'GET') return json(res,200,world || {revision:0, snapshot:null, history:[]});
-    if (req.method !== 'PUT') return json(res,405,{error:'Method not allowed'});
-    // The service is loopback-only and accepts same-origin browser writes only.
+  if (url.pathname === '/api/world' && req.method === 'GET') return json(res,200,world);
+  if (url.pathname === '/api/action') {
+    if (req.method !== 'POST') return json(res,405,{error:'Method not allowed'});
     if (req.headers.origin && req.headers.origin !== `http://${req.headers.host}`) return json(res,403,{error:'Origin not allowed'});
     let body = ''; let tooLarge = false;
-    req.on('data', chunk => { body += chunk; if (body.length > 1024*1024) { tooLarge = true; req.destroy(); } });
+    req.on('data', chunk => { body += chunk; if (body.length > 8192) { tooLarge = true; req.destroy(); } });
     req.on('end', () => {
       if (tooLarge) return;
-      try {
-        const input = JSON.parse(body);
-        if (!Number.isSafeInteger(input.revision) || !input.snapshot || !input.snapshot.society || !Array.isArray(input.snapshot.society.lineages) || !Array.isArray(input.snapshot.buildings) || !Array.isArray(input.events) || input.events.length > 500 || input.events.some(e => typeof e.message !== 'string' || e.message.length > 500 || !Number.isFinite(e.turn))) return json(res,400,{error:'Invalid world payload'});
-        const revision = world?.revision || 0;
-        if (input.revision !== revision) return json(res,409,{error:'World changed in another session',revision});
-        const history = [...(world?.history || []), ...input.events.map(e => ({turn:e.turn, message:e.message, timestamp:new Date().toISOString()}))].slice(-500);
-        const next = {revision:revision+1, snapshot:input.snapshot, history};
-        save(next); world = next;
-        return json(res,200,{revision:next.revision,history});
-      } catch (error) { return json(res, error instanceof SyntaxError ? 400 : 500,{error:error instanceof SyntaxError ? 'Invalid JSON' : 'Unable to save world'}); }
+      let input;
+      try { input = JSON.parse(body); } catch { return json(res,400,{error:'Invalid JSON'}); }
+      if (!input || !Number.isSafeInteger(input.revision) || !input.action || typeof input.action.type !== 'string') return json(res,400,{error:'Invalid action payload'});
+      if (input.revision !== world.revision) return json(res,409,{error:'World changed in another session',revision:world.revision});
+      let next;
+      try { next=applyAction(world,input.action); } catch(error) { return json(res,400,{error:error.message}); }
+      try { save(next); world=next; return json(res,200,world); }
+      catch { return json(res,500,{error:'Unable to save world'}); }
     });
     return;
   }

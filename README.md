@@ -21,13 +21,13 @@ An interactive **Pixel-Art 3D Floating-Island & 2.5D Isometric Voxel Simulator G
 
 ### How this prototype works
 
-The simulation runs in the browser; the Node.js backend persists one local single-player world and its most recent 500 journal events to `data/world.json`. It is not a multi-user server or an LLM-agent simulation. Autonomous agents act deterministically by turn order, with some random building choices. The world advances only while the page is open.
+The Node.js backend owns the rule-based simulation, validates and applies commands, and persists one local single-player world and its most recent 500 journal events to `data/world.json`. The browser renders the world and sends commands; it triggers autonomous turns on a timer while the page is open. It is not a multi-user server or an LLM-agent simulation.
 
-- Work mints role-based wages, farmers produce rations, engineers gain sales power, and managers improve harmony. Player actions use keyboard or hotbar controls.
-- Autonomous agents lose stamina, buy a ration when hungry if stock and funds are available, and otherwise receive the prototype's free granary fallback. This is not a starvation simulation.
-- Agents approaching their context threshold can retire and pass their existing wallet and equipment to the next generation; generation is capped by the preset. A player can also trigger a handover at the shrine before reaching the threshold.
-- Buildings add power and factories increase treasury income. Tool upgrades increase work output. The charter's wage reform changes wages; other displayed charter descriptions are aspirational and do not yet implement all listed effects. The current UI permits a player to cycle laws regardless of rank.
-- The journal records player dialogues and autonomous turns. Expand **WORLD HISTORY** to inspect recent events. A revision conflict means a second browser changed the same save: stop interacting in one tab and reload it. Unsaved changes in that tab will be lost on reload.
+- One non-player actor acts per turn; work mints role-based wages, farmers produce rations, engineers gain sales power, and managers improve harmony. Player actions use keyboard or hotbar controls.
+- Hungry agents buy available rations from other agents. If they cannot buy, the emergency-granary law pays 1 treasury GCOIN for a ration; if the reserve cannot pay, no ration is provided.
+- At 10,000 context tokens an agent retires and passes its wallet and assets to the next generation, up to the preset generation cap. A shrine handover requires the threshold.
+- Buildings add power and factories increase treasury income. Tool upgrades increase work output. The highest-power Archon can toggle a wage-reform law; other legacy charter descriptions are not implemented.
+- Expand **WORLD HISTORY** to inspect recent events. A revision conflict means another browser changed the world; reload the stopped tab. The service is intended for one local player and has no account authentication.
 
 ### Run locally
 
@@ -43,4 +43,4 @@ The server listens only on localhost. Opening `public/index.html` directly does 
 
 ### Experiment
 
-`npm test` runs the actual browser controller in a lightweight simulated DOM against the real HTTP service for 100 autonomous turns, then checks persisted state, event history, reload, and rejection of stale writes. See [experiment notes](docs/experiment.md). It does not validate canvas rendering or replace an interactive browser test.
+`npm test` runs 100 actual backend turns over HTTP, checks persistence across server restart, player commands, invalid actions, stale writes and cross-origin rejection, and exercises a UI-controller command with a simulated DOM/scene. See [experiment notes](docs/experiment.md). It does not validate canvas rendering or replace an interactive browser test.

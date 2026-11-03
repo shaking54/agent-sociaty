@@ -84,7 +84,7 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
         y: 0,
         title: 'LINEAGE ASCENSION SHRINE',
         color: '#c084fc',
-        prompt: 'Ascend to Gen +1 Heir (+10% Permanent Wage Mastery)',
+        prompt: 'Handover at the context threshold',
         actionType: 'handover'
       },
       'market-exchange': {
@@ -102,7 +102,7 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
         y: 210,
         title: 'ARCHON CHARTER MONOLITH',
         color: '#f472b6',
-        prompt: 'Enact / Cycle Colony Charter Law (Archon Decree)',
+        prompt: 'Toggle wage reform (Archon only)',
         actionType: 'law'
       },
       'core': {
@@ -392,7 +392,7 @@ window.IsometricSocietyScene = class IsometricSocietyScene {
       if (d < bestDist) {
         bestDist = d;
         const prompts = {
-          house: 'Rest at House (+35% Stamina & +Heir XP)',
+          house: 'Rest at House (restore stamina)',
           factory: 'Operate Factory (+Blueprint & +Wage GCOIN)',
           shop: 'Trade at Market Shop (+Ration & +Sales Power)',
           paddlefield: 'Play Paddlefield Rally (+Harmony & +Wage GCOIN)'
